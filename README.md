@@ -1,4 +1,4 @@
-content = """[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![STM32F411](https://img.shields.io/badge/MCU-STM32F411CE-blue.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32f411.html)
 [![Protocol](https://img.shields.io/badge/Protocol-I2C-orange.svg)](https://en.wikipedia.org/wiki/I%C2%B2C)
 
@@ -134,4 +134,3 @@ Final Year - Electronics & Communication Engineering
 Rajalakshmi Engineering College, Thiruvallur
 🔗 LinkedIn: linkedin.com/in/asif-ahamed-s-ece
 📧 Email: asifahamed670@gmail.com
-```text
