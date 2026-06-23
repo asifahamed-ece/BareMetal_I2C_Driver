@@ -142,11 +142,11 @@ STM32-I2C-OLED-BareMetal/
 
 ****🔗 Resources****
 
-[![STM32: Reference Manual]https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+[STM32: Reference Manual] https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
 
-[![SSDOLED: Datasheet]https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=SSD1306.pdf
+[SSDOLED: Datasheet] https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=SSD1306.pdf
 
-[![OOLED UserGuide]https://www.nxp.com/docs/en/user-guide/UM10204.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=UM10204.pdf
+[OLED UserGuide] https://www.nxp.com/docs/en/user-guide/UM10204.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=UM10204.pdf
 
 
 **👨‍ Author**
