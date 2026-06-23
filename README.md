@@ -34,6 +34,11 @@ Complete I2C master implementation driving a 128×64 SSD1306 OLED display using 
 - Diagonal line rendering
 - Expandable architecture for text and shapes
 
+<p align="center">
+  <img src="docs/VID_20260623_205916.gif" alt="Baremetal I2C Driver - STM32 to SSD1306 OLED" width="35%" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+</p>
+<p align="center"><em>Baremetal I2C Driver → STM32F103 → SSD1306 OLED (Auto-Looping)</em></p>
+
 ## 📊 Technical Specifications
 
 | Component           | Specification                   |
