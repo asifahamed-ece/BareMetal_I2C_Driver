@@ -94,10 +94,15 @@ Location: Buffer[306], bit 4
 
 ****🎓 Key Learnings****
 **Critical I2C Concepts**
+
 Open-Drain is mandatory - Prevents bus contention when multiple devices share the line
+
 ADDR flag clearing trap - Must read SR1 then SR2 to clear, otherwise bus locks up
+
 Address shifting - 7-bit address must be shifted left and OR'd with R/W bit
+
 Pull-up resistors - Required for I2C idle state (internal or external)
+
 
 **SSD1306 Controller Commands**
 0xAE - Display OFF
@@ -108,11 +113,17 @@ Pull-up resistors - Required for I2C idle state (internal or external)
 0x22 - Set page address
 
 **Common Pitfalls Avoided**
+
 ❌ Forgetting to clear ADDR flag → Bus lockup
+
 ❌ Using Push-Pull instead of Open-Drain → Bus contention
+
 ❌ Missing pull-up resistors → Floating bus lines
+
 ❌ Not waiting for TXE flag → Data corruption
+
 ❌ Wrong memory mapping → Garbage display
+
 
 **📂 Project Structure**
 STM32-I2C-OLED-BareMetal/
@@ -123,14 +134,22 @@ STM32-I2C-OLED-BareMetal/
 └── README.md   
 
 ****🔗 Resources****
-https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
-https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=SSD1306.pdf
-https://www.nxp.com/docs/en/user-guide/UM10204.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=UM10204.pdf
+
+[![STM32: Reference Manual]https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+
+[![SSDOLED: Datasheet]https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=SSD1306.pdf
+
+[![OOLED UserGuide]https://www.nxp.com/docs/en/user-guide/UM10204.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=UM10204.pdf
 
 
 **👨‍ Author**
+
 **Asif Ahamed S**
-Final Year - Electronics & Communication Engineering
+
+\Final Year - Electronics & Communication Engineering
+
 Rajalakshmi Engineering College, Thiruvallur
+
 🔗 LinkedIn: linkedin.com/in/asif-ahamed-s-ece
+
 📧 Email: asifahamed670@gmail.com
