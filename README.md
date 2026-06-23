@@ -96,6 +96,7 @@ The 128×64 display is organized into **8 pages** (8 rows each):
 Pixel (x, y) → Buffer[x + (y/8) × 128], bit (y%8)
 
 Example: Pixel (50, 20)
+
 Page: 20 / 8 = 2
 
 Bit: 20 % 8 = 4
