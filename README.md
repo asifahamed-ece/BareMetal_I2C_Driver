@@ -84,11 +84,16 @@ The 128×64 display is organized into **8 pages** (8 rows each):
 - Page 7: Bytes 896-1023 (Rows 56-63)
 
 **Pixel Mapping Formula:**
+
 Pixel (x, y) → Buffer[x + (y/8) × 128], bit (y%8)
+
 Example: Pixel (50, 20)
 Page: 20 / 8 = 2
+
 Bit: 20 % 8 = 4
+
 Index: 50 + (2 × 128) = 306
+
 Location: Buffer[306], bit 4
 
 
