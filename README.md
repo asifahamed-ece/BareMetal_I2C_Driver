@@ -51,7 +51,7 @@ Complete I2C master implementation driving a 128×64 SSD1306 OLED display using 
 | **Transfer Mode**   | Burst (1024 bytes/transaction)  |
 | **Performance**     | ~10ms full-screen refresh       |
 
-**## 🔧 Hardware Setup**
+## 🔧 Hardware Setup
 
 ### Pin Configuration
 
@@ -90,7 +90,8 @@ The 128×64 display is organized into **8 pages** (8 rows each):
 - Page 6: Bytes 768-895 (Rows 48-55)
 - Page 7: Bytes 896-1023 (Rows 56-63)
 
-**Pixel Mapping Formula:**
+
+## Pixel Mapping Formula:
 
 Pixel (x, y) → Buffer[x + (y/8) × 128], bit (y%8)
 
@@ -104,7 +105,7 @@ Index: 50 + (2 × 128) = 306
 Location: Buffer[306], bit 4
 
 
-****🎓 Key Learnings****
+### 🎓 Key Learnings
 **Critical I2C Concepts**
 
 Open-Drain is mandatory - Prevents bus contention when multiple devices share the line
@@ -116,7 +117,7 @@ Address shifting - 7-bit address must be shifted left and OR'd with R/W bit
 Pull-up resistors - Required for I2C idle state (internal or external)
 
 
-**SSD1306 Controller Commands**
+## SSD1306 Controller Commands
 0xAE - Display OFF
 0xAF - Display ON
 0x8D - Charge pump enable (critical!)
@@ -124,7 +125,7 @@ Pull-up resistors - Required for I2C idle state (internal or external)
 0x21 - Set column address
 0x22 - Set page address
 
-**Common Pitfalls Avoided**
+## Common Pitfalls Avoided
 
 ❌ Forgetting to clear ADDR flag → Bus lockup
 
@@ -137,7 +138,7 @@ Pull-up resistors - Required for I2C idle state (internal or external)
 ❌ Wrong memory mapping → Garbage display
 
 
-**📂 Project Structure**
+## 📂 Project Structure
 STM32-I2C-OLED-BareMetal/
 ├── src/
 │   └── main.c                 # Main application + graphics
@@ -154,11 +155,11 @@ STM32-I2C-OLED-BareMetal/
 [OLED UserGuide] https://www.nxp.com/docs/en/user-guide/UM10204.pdf?spm=a2ty_o01.29997173.0.0.794a55fb5y1dI0&file=UM10204.pdf
 
 
-**👨‍ Author**
+## 👨‍ Author
 
 **Asif Ahamed S**
 
-\Final Year - Electronics & Communication Engineering
+Final Year - Electronics & Communication Engineering
 
 Rajalakshmi Engineering College, Thiruvallur
 
