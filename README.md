@@ -75,7 +75,33 @@ Black Pill ------------+-------+ SSD1306 OLED
 
 | GND ----------------+----------+ GND  |
 
+## 🗺️ Framebuffer Memory Mapping (128×64 OLED)
 
+The SSD1306 controller organizes its 1024-byte Graphics Display Data RAM (GDDRAM) into **8 horizontal pages**. Each page contains 128 bytes, where each byte represents a vertical column of 8 pixels.
+
+| Page | Byte Range | Pixel Rows Covered |
+| :---: | :--- | :--- |
+| **Page 0** | Bytes 0 - 127 | Rows 0 - 7 |
+| **Page 1** | Bytes 128 - 255 | Rows 8 - 15 |
+| **Page 2** | Bytes 256 - 383 | Rows 16 - 23 |
+| **Page 3** | Bytes 384 - 511 | Rows 24 - 31 |
+| **Page 4** | Bytes 512 - 639 | Rows 32 - 39 |
+| **Page 5** | Bytes 640 - 767 | Rows 40 - 47 |
+| **Page 6** | Bytes 768 - 895 | Rows 48 - 55 |
+| **Page 7** | Bytes 896 - 1023 | Rows 56 - 63 |
+
+---
+
+### 🎓 Key Learnings: Critical I2C Concepts
+
+*  **Open-Drain is mandatory** 
+    Prevents bus contention when multiple devices share the line.
+*  **ADDR flag clearing trap** 
+    Must read `SR1` then `SR2` to clear, otherwise the bus locks up.
+*  **Address shifting** 
+    7-bit address must be shifted left and OR'd with the R/W bit.
+*  **Pull-up resistors** 
+    Required for I2C idle state (internal or external).
 
 ### Framebuffer Memory Mapping
 
@@ -89,64 +115,65 @@ The 128×64 display is organized into **8 pages** (8 rows each):
 - Page 5: Bytes 640-767 (Rows 40-47)
 - Page 6: Bytes 768-895 (Rows 48-55)
 - Page 7: Bytes 896-1023 (Rows 56-63)
+---
 
+### 📐 Pixel Mapping Formula
 
-## Pixel Mapping Formula:
+To plot a single pixel at Cartesian coordinates `(x, y)`, you must calculate the correct byte index in the 1D buffer and the specific bit within that byte.
 
-Pixel (x, y) → Buffer[x + (y/8) × 128], bit (y%8)
+**The Formula:**
+```c
+uint16_t index = x + ((y / 8) * 128);
+uint8_t bit_position = y % 8;
 
-Example: Pixel (50, 20)
+// To set the pixel (turn ON):
+buffer[index] |= (1 << bit_position);
+```
+### Concrete Example: Pixel (50, 20)
 
-Page: 20 / 8 = 2
+* **Page:** `20 / 8 = 2`
+* **Bit:** `20 % 8 = 4`
+* **Index:** `50 + (2 × 128) = 306`
+* **Location:** `Buffer[306]`, bit `4`
 
-Bit: 20 % 8 = 4
+---
 
-Index: 50 + (2 × 128) = 306
+## 📟 SSD1306 Controller Commands
 
-Location: Buffer[306], bit 4
+The following hex commands are sent over I2C (prefixed with the `0x00` control byte for command mode) to initialize and configure the SSD1306 display controller.
 
+| Command | Hex Code | Description |
+| :--- | :---: | :--- |
+| **Display OFF** | `0xAE` | Turns off the OLED display panel. |
+| **Display ON** | `0xAF` | Turns on the OLED display panel. |
+| **Charge Pump** | `0x8D` | Enables the internal DC-DC charge pump (**Critical!** Required to generate the high voltage needed to light up the OLED pixels). |
+| **Memory Mode** | `0x20` | Sets the memory addressing mode (e.g., Horizontal, Vertical, or Page addressing). |
+| **Column Addr** | `0x21` | Sets the start and end column address range for GDDRAM writes. |
+| **Page Addr** | `0x22` | Sets the start and end page address range for GDDRAM writes. |
 
-### 🎓 Key Learnings
-**Critical I2C Concepts**
+---
 
-Open-Drain is mandatory - Prevents bus contention when multiple devices share the line
+## ⚠️ Common Pitfalls to be Avoided
 
-ADDR flag clearing trap - Must read SR1 then SR2 to clear, otherwise bus locks up
+When writing baremetal I2C drivers, hardware-level mistakes can cause silent failures or permanent bus lockups. Here are the critical issues handled in this implementation:
 
-Address shifting - 7-bit address must be shifted left and OR'd with R/W bit
-
-Pull-up resistors - Required for I2C idle state (internal or external)
-
-
-## SSD1306 Controller Commands
-0xAE - Display OFF
-0xAF - Display ON
-0x8D - Charge pump enable (critical!)
-0x20 - Memory addressing mode
-0x21 - Set column address
-0x22 - Set page address
-
-## Common Pitfalls Avoided
-
-❌ Forgetting to clear ADDR flag → Bus lockup
-
-❌ Using Push-Pull instead of Open-Drain → Bus contention
-
-❌ Missing pull-up resistors → Floating bus lines
-
-❌ Not waiting for TXE flag → Data corruption
-
-❌ Wrong memory mapping → Garbage display
-
+*  **Forgetting to clear the `ADDR` flag** → Causes permanent **bus lockup** (SCL held low indefinitely). *Fix: Read `SR1` then `SR2` sequentially.*
+*  **Using Push-Pull instead of Open-Drain** → Causes **bus contention** and potential hardware damage. *Fix: Configure GPIO pins as Alternate Function Open-Drain.*
+*  **Missing pull-up resistors** → Results in **floating bus lines** and failed communication. *Fix: Use external 4.7kΩ pull-ups to VCC.*
+*  **Not waiting for the `TXE` (Transmit Data Register Empty) flag** → Causes **data corruption** or overwritten bytes. *Fix: Poll `I2C_SR1 & I2C_SR1_TXE` before writing to `I2C_DR`.*
+*  **Wrong memory mapping (GDDRAM)** → Results in a **garbage display** or shifted graphics. *Fix: Strictly follow the `Page = y/8`, `Bit = y%8` mapping formula.*
+---
 
 ## 📂 Project Structure
-STM32-I2C-OLED-BareMetal/
-├── src/
-│   └── main.c                 # Main application + graphics
-├── include/
-│   └── blackpill_stm32f411.h  # Register definitions
-└── README.md   
 
+STM32-I2C-OLED-BareMetal/  
+├── src/  
+│   └── main.c                 # Main application, I2C driver, and graphics logic  
+├── include/  
+│   └── blackpill_stm32f411.h  # Direct hardware register definitions and memory maps  
+└── README.md                  # Project documentation  
+
+---
 ****🔗 Resources****
 
 [STM32: Reference Manual] https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
