@@ -6,6 +6,11 @@ Debug/
 Release/
 .metadata/
 
+# STM32CubeMX auto-generated files (Add these!)
+*.ioc
+*.mxproject
+Drivers/
+
 # Build artifacts
 *.o
 *.d
