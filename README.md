@@ -11,7 +11,7 @@ Complete I2C master implementation driving a 128×64 SSD1306 OLED display using 
 ## ✨ Features
 
 ✅ **Complete I2C Master Implementation**
-- Manual register configuration (no HAL)
+- Manual register configuration (no HAL) 
 - START/STOP condition generation
 - 7-bit addressing with ACK/NACK handling
 - 100kHz Standard Mode
