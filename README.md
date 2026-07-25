@@ -189,7 +189,7 @@ STM32-I2C-OLED-BareMetal/
 
 Final Year - Electronics & Communication Engineering
 
-Rajalakshmi Engineering College, Thiruvallur
+Rajalakshmi Engineering College, Chennai
 
 🔗 LinkedIn: linkedin.com/in/asif-ahamed-s-ece
 
