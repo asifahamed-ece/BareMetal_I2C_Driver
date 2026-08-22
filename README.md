@@ -4,31 +4,31 @@
 
 A **from-scratch, register-level** I2C driver for SSD1306 OLED displays on STM32F411 Black Pill. No HAL.
 
-## 🎯 Project Overview
+## Project Overview
 
 Complete I2C master implementation driving a 128×64 SSD1306 OLED display using framebuffer architecture
 
-## ✨ Features
+## Features
 
-✅ **Complete I2C Master Implementation**
+ **Complete I2C Master Implementation**
 - Manual register configuration (no HAL) 
 - START/STOP condition generation
 - 7-bit addressing with ACK/NACK handling
 - 100kHz Standard Mode
 
-✅ **SSD1306 OLED Driver**
+ **SSD1306 OLED Driver**
 - Full initialization sequence (25 commands)
 - Command/Data transmission protocol
 - Horizontal addressing mode
 - Charge pump configuration
 
-✅ **Framebuffer Graphics System**
+ **Framebuffer Graphics System**
 - 128×64 monochrome buffer (1024 bytes)
 - Pixel-level drawing API
 - Optimized burst transfer (1024 bytes in 1 I2C transaction)
 - 100× faster than naive byte-by-byte approach
 
-✅ **Graphics Primitives**
+ **Graphics Primitives**
 - `SSD1306_DrawPixel()` - Single pixel control
 - Border drawing
 - Diagonal line rendering
@@ -39,7 +39,7 @@ Complete I2C master implementation driving a 128×64 SSD1306 OLED display using 
 </p>
 <p align="center"><em>Baremetal I2C Driver → STM32F103 → SSD1306 OLED (Auto-Looping)</em></p>
 
-## 📊 Technical Specifications
+## Technical Specifications
 
 | Component           | Specification                   |
 |---------------------|---------------------------------|
@@ -51,7 +51,7 @@ Complete I2C master implementation driving a 128×64 SSD1306 OLED display using 
 | **Transfer Mode**   | Burst (1024 bytes/transaction)  |
 | **Performance**     | ~10ms full-screen refresh       |
 
-## 🔧 Hardware Setup
+## Hardware Setup
 
 ### Pin Configuration
 
@@ -75,7 +75,7 @@ Black Pill ------------+-------+ SSD1306 OLED
 
 | GND ----------------+----------+ GND  |
 
-## 🗺️ Framebuffer Memory Mapping (128×64 OLED)
+## Framebuffer Memory Mapping (128×64 OLED)
 
 The SSD1306 controller organizes its 1024-byte Graphics Display Data RAM (GDDRAM) into **8 horizontal pages**. Each page contains 128 bytes, where each byte represents a vertical column of 8 pixels.
 
@@ -92,7 +92,7 @@ The SSD1306 controller organizes its 1024-byte Graphics Display Data RAM (GDDRAM
 
 ---
 
-### 🎓 Key Learnings: Critical I2C Concepts
+### Key Learnings: Critical I2C Concepts
 
 *  **Open-Drain is mandatory** 
     Prevents bus contention when multiple devices share the line.
@@ -117,7 +117,7 @@ The 128×64 display is organized into **8 pages** (8 rows each):
 - Page 7: Bytes 896-1023 (Rows 56-63)
 ---
 
-### 📐 Pixel Mapping Formula
+### Pixel Mapping Formula
 
 To plot a single pixel at Cartesian coordinates `(x, y)`, you must calculate the correct byte index in the 1D buffer and the specific bit within that byte.
 
@@ -138,7 +138,7 @@ buffer[index] |= (1 << bit_position);
 
 ---
 
-## 📟 SSD1306 Controller Commands
+## SSD1306 Controller Commands
 
 The following hex commands are sent over I2C (prefixed with the `0x00` control byte for command mode) to initialize and configure the SSD1306 display controller.
 
@@ -153,7 +153,7 @@ The following hex commands are sent over I2C (prefixed with the `0x00` control b
 
 ---
 
-## ⚠️ Common Pitfalls to be Avoided
+## Common Pitfalls to be Avoided
 
 When writing baremetal I2C drivers, hardware-level mistakes can cause silent failures or permanent bus lockups. Here are the critical issues handled in this implementation:
 
@@ -164,7 +164,7 @@ When writing baremetal I2C drivers, hardware-level mistakes can cause silent fai
 *  **Wrong memory mapping (GDDRAM)** → Results in a **garbage display** or shifted graphics. *Fix: Strictly follow the `Page = y/8`, `Bit = y%8` mapping formula.*
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 STM32-I2C-OLED-BareMetal/  
 ├── src/  
@@ -174,7 +174,7 @@ STM32-I2C-OLED-BareMetal/
 └── README.md                  # Project documentation  
 
 ---
-****🔗 Resources****
+**** Resources****
 
 [STM32: Reference Manual] https://www.st.com/resource/en/reference_manual/rm0383-stm32f411xc-e-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
 
