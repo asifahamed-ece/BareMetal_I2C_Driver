@@ -215,14 +215,14 @@
 // SysTick Register Pointers
 #define STK_CSR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x00U))  // Control and Status register
 #define STK_RVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x04U))  // Reload Value register (24-bit)
-#define STK_CVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x08U))  // Current Value register (read-only, clears on read)
+#define STK_CVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x08U))  // Current Value register (read/write, clears on read)
 #define STK_CALIB             (*(volatile uint32_t*)(SYSTICK_BASE + 0x0CU))  // Calibration Value register (read-only)
 
 // STK_CSR Bit Masks
 #define STK_CSR_ENABLE        (1U << 0)  // Bit 0: Enable SysTick counter (1=enabled, 0=disabled)
 #define STK_CSR_TICKINT       (1U << 1)  // Bit 1: Enable SysTick interrupt (1=interrupt on underflow)
-#define STK_CSR_CLKSOURCE     (1U << 2)  // Bit 2: Clock source (1=processor clock, 0=external reference)
-#define STK_CSR_COUNTFLAG     (1U << 16) // Bit 16: Count flag (set when counter reaches 0, read-only)
+#define STK_CSR_CLKSOURCE     (1U << 2)  // Bit 2: Clock source (1=processor clock (AHB) , 0= AHB/8 on STM32)
+#define STK_CSR_COUNTFLAG     (1U << 16) // Bit 16: Count flag (set when counter reaches 0, read-only {Clears on Read})
 
 /* ========================================================================
  * CORE UTILITY MACROS
