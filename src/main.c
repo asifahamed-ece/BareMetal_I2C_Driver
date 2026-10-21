@@ -68,8 +68,8 @@ void I2C1_Init(){
 	GPIOB_PUPDR |= ( (0x01U << GPIO_PIN_MODE_SHIFT(6U)) | (0x01U << GPIO_PIN_MODE_SHIFT(7U)) );
 
 //	Setting Up Alternative Function Registers { 20 and 24 for Pins 6 and 7 on AFRL}
-	GPIOB_AFRL &= ~( ( 0xFU << 24) | (0xFU << 28) );
-	GPIOB_AFRL |=  ( ( 0x4U << 24) | (0x4U << 28) );
+	GPIOB_AFRL &= ~( (0xFU << 24) | (0xFU << 28) );
+	GPIOB_AFRL |=  ( (0x4U << 24) | (0x4U << 28) );
 
 	// I2C peripheral Configuration //
 
