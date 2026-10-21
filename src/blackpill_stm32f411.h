@@ -215,7 +215,7 @@
 // SysTick Register Pointers
 #define STK_CSR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x00U))  // Control and Status register
 #define STK_RVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x04U))  // Reload Value register (24-bit)
-#define STK_CVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x08U))  // Current Value register (read/write, clears on read)
+#define STK_CVR               (*(volatile uint32_t*)(SYSTICK_BASE + 0x08U))  // Current Value register (read/write; write any value to clear it to 0 & also clears COUNTFLAG)
 #define STK_CALIB             (*(volatile uint32_t*)(SYSTICK_BASE + 0x0CU))  // Calibration Value register (read-only)
 
 // STK_CSR Bit Masks
