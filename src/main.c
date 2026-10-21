@@ -261,8 +261,9 @@ void SysTick_Delay_ms(uint32_t ms){
 	while(ms > 0){
 
 		while( !(STK_CSR & STK_CSR_COUNTFLAG));  // Wait until the Flag sets to 1  :> Rem we have used ! operator
-	}
-    ms--;  // Decrement the ms counter after each 1ms delay
+        
+        ms--;  // Decrement the ms counter after each 1ms delay
+    }
 }
 
 int main(void)
