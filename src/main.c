@@ -253,15 +253,16 @@ void SysTick_Init(void){
 	STK_CVR = 0;  // This will reset the CVR
 
 	// 4. Enable the Control and Status Reg
-	STK_CSR |= ( STK_CSR_ENABLE | STK_CSR_CLKSOURCE);  // Enable the CLK Source (b2) and Timer (b0)
+	STK_CSR |= ( STK_CSR_ENABLE | STK_CSR_CLKSOURCE );  // Enable the CLK Source (b2) and Timer (b0)
 	// SYSTICKINT is Not enabled yet. we dont need the Interrupts yet.
 }
 
 void SysTick_Delay_ms(uint32_t ms){
-	while(ms--){
+	while(ms > 0){
 
-		while( !(STK_CSR & STK_CSR_COUNTFLAG ));  // Wait until the Flag sets to 1  :> Rem we have used ! operator
+		while( !(STK_CSR & STK_CSR_COUNTFLAG));  // Wait until the Flag sets to 1  :> Rem we have used ! operator
 	}
+    ms--;  // Decrement the ms counter after each 1ms delay
 }
 
 int main(void)
