@@ -83,6 +83,41 @@
 #define GPIOx_AFRL_OFF        0x20U  // Alternate function low register offset: AF config for pins 0-7
 #define GPIOx_AFRH_OFF        0x24U  // Alternate function high register offset: AF config for pins 8-15
 
+/* ---------------------------------------------------------------------------
+ * GPIO port type
+ *
+ * The registers of every GPIO port have the same layout, so they are
+ * described once here and each port gets a pointer to it. This is much
+ * nicer to use than the flat GPIOC_MODER / GPIOC_ODR macros:
+ *
+ *     GPIOC->MODER   instead of   GPIOC_MODER
+ *
+ * and it lets a function take a port as an argument:
+ *
+ *     static void led_init(GPIO_TypeDef *port, uint32_t pin)
+ *
+ * Source: RM0383 §8.3 "GPIO register map"
+ * -------------------------------------------------------------------------*/
+typedef struct
+{
+    volatile uint32_t MODER;    /* 0x00 mode register          */
+    volatile uint32_t OTYPER;   /* 0x04 output type register   */
+    volatile uint32_t OSPEEDR;  /* 0x08 output speed register  */
+    volatile uint32_t PUPDR;    /* 0x0C pull-up/pull-down     */
+    volatile uint32_t IDR;      /* 0x10 input data (read-only)*/
+    volatile uint32_t ODR;      /* 0x14 output data           */
+    volatile uint32_t BSRR;     /* 0x18 bit set/reset         */
+    volatile uint32_t LCKR;     /* 0x1C lock                  */
+    volatile uint32_t AFR[2];   /* 0x20 AFRL, 0x24 AFRH       */
+} GPIO_TypeDef;
+
+#define GPIOA   ((GPIO_TypeDef *)GPIOA_BASE)
+#define GPIOB   ((GPIO_TypeDef *)GPIOB_BASE)
+#define GPIOC   ((GPIO_TypeDef *)GPIOC_BASE)
+#define GPIOD   ((GPIO_TypeDef *)GPIOD_BASE)
+#define GPIOE   ((GPIO_TypeDef *)GPIOE_BASE)
+#define GPIOH   ((GPIO_TypeDef *)GPIOH_BASE)
+
 // GPIO Register Pointers for GPIOA (PA0-PA15)
 #define GPIOA_MODER           (*(volatile uint32_t*)(GPIOA_BASE + GPIOx_MODER_OFF))  // PA pin mode control
 #define GPIOA_OTYPER          (*(volatile uint32_t*)(GPIOA_BASE + GPIOx_OTYPER_OFF)) // PA output type control
