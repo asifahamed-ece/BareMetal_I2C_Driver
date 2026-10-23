@@ -1,73 +1,52 @@
-/* ===========================================================================
- * startup_stm32f411.s — Reset_Handler and vector table for STM32F411CEU6
- * ===========================================================================
+/**
+ * @file    startup_stm32f411.s
+ * @brief   Vector table and Reset_Handler for the STM32F411CEU6.
  *
- * Part of the baremetal I2C driver learning project.
- * Pairs with stm32f411.ld — that file defines the addresses, this one uses them.
+ * On reset the CPU takes SP from 0x00000000 and the reset vector from
+ * 0x00000004 (RM0383 §2.2.3). 0x00000000 aliases flash, so .isr_vector must
+ * be the first bytes at 0x08000000.
  *
- * WHAT THE CPU DOES ON RESET (RM0383 §2.2.3, PM0214 §2.3.4):
- *   1. Reads the initial SP from 0x00000000
- *   2. Reads the reset vector from 0x00000004
- *   3. Both come from .isr_vector, which must be the FIRST bytes in flash
- *      because 0x00000000 is an alias of 0x08000000.
+ * 102 words = 408 bytes: 16 system exceptions plus 86 external slots. The 29
+ * reserved slots still occupy addresses, so they point at Default_Handler
+ * rather than 0. Handler names come from RM0383 Table 37.
  *
- * VECTOR TABLE SIZE: 102 words = 408 bytes = 0x198
- *   16 system exceptions + 86 external IRQ slots (positions 0..85)
- *   29 of the 86 slots are reserved on the F411 but still occupy address
- *   space, so they get Default_Handler rather than 0.
- *
- * IRQ NAMES: taken from RM0383 Table 37 via docs/reference/f411_external_irqs.inc
- *
- * VERIFIED (on this machine, GCC 16.2.0 / ld 2.47):
- *   - .isr_vector is 0x198 bytes = 102 words
- *   - .isr_vector has the "A" (alloc) flag and sits at 0x08000000
- *   - .text starts at 0x08000198, so the two do not overlap
- *   - the reset sequence was EXECUTED on a Cortex-M4 simulator (Unicorn):
- *       FPU enabled (CPACR = 0x00F00000), .data copied (value 7 correct),
- *       .bss zeroed, main() reached with SP = 0x20020000
- *   - IRQ vector addressing checked: IRQ 85 -> 0x194 = 0x40 + 4*85
- *   - Default_Handler verified to loop forever
- *
- * NOT YET VERIFIED ON HARDWARE: the ST-Link was not connected when this was
- * written, so the blinky has not been flashed and observed yet. That is the
- * next step.
- * =========================================================================== */
+ * Pairs with stm32f411.ld — that file defines the addresses used here.
+ */
 
   .syntax unified
   .cpu cortex-m4
   .fpu fpv4-sp-d16
   .thumb
 
-/* ---------------------------------------------------------------------------
- * Declare a handler as a weak alias of Default_Handler.
+/**
+ * @brief Declare a handler as a weak alias of Default_Handler.
  *
- * Weak means: if the application defines a strong symbol with this name, the
- * application's version wins automatically. If it never does, the alias
- * supplies Default_Handler so the vector table never points at nothing.
- * ---------------------------------------------------------------------- */
+ * A strong definition with the same name in the application silently wins.
+ * Without it the vector table would point at nothing.
+ */
   .macro def_handler name
     .weak \name
     .thumb_set \name, Default_Handler
   .endm
 
-/* ===========================================================================
- * VECTOR TABLE
+/**
+ * @brief Vector table. Must be the first bytes in flash.
  *
- * The "a" in .section .isr_vector,"a",%progbits means ALLOCATABLE.
- * Without it the section is not loadable: the linker does not advance FLASH
- * for it, .text lands on top of it at 0x08000000, and .isr_vector ends up in
- * no program header so it is never flashed at all. The build succeeds and the
- * chip locks up. Check with:
- *   arm-none-eabi-readelf -S build/app.elf | grep isr_vector   # needs flag A
- * ========================================================================= */
+ * The "a" in .section means allocatable. Without it the linker does not
+ * advance FLASH for the section, .text lands on top at 0x08000000, and the
+ * table ends up in no program header — so it is never flashed. The build
+ * succeeds and the chip locks up.
+ *
+ * Verify: arm-none-eabi-readelf -S build/app.elf | grep isr_vector   (needs A)
+ */
   .section .isr_vector,"a",%progbits
   .type g_pfnVectors, %object
   .size g_pfnVectors, .-g_pfnVectors
 
 g_pfnVectors:
 
-  .word _estack              /* 0  : initial stack pointer (0x20020000) */
-  .word Reset_Handler        /* 1  : reset                     */
+  .word _estack              /* 0  : initial SP (0x20020000) */
+  .word Reset_Handler        /* 1  : reset */
   .word NMI_Handler          /* 2  */
   .word HardFault_Handler    /* 3  */
   .word MemManage_Handler    /* 4  */
@@ -83,7 +62,7 @@ g_pfnVectors:
   .word PendSV_Handler       /* 14 */
   .word SysTick_Handler      /* 15 */
 
-  /* ---- external IRQs, positions 0..85 (86 slots) ---- */
+  /* External IRQs, positions 0..85 */
   .word WWDG_IRQHandler
   .word PVD_IRQHandler
   .word TAMP_STAMP_IRQHandler
@@ -171,12 +150,11 @@ g_pfnVectors:
   .word SPI4_IRQHandler
   .word SPI5_IRQHandler
 
-/* ===========================================================================
- * DEFAULT HANDLER
+/**
+ * @brief Landing point for every unused vector.
  *
- * Every unused vector lands here. The CPU parks in an infinite loop so a
- * debugger can attach and inspect the state that caused the fault.
- * ========================================================================= */
+ * Loops forever so a debugger can attach and inspect the state that led here.
+ */
   .section .text.Default_Handler,"ax",%progbits
   .type Default_Handler, %function
   .weak Default_Handler
@@ -185,27 +163,23 @@ Infinite_Loop:
   b Infinite_Loop
   .size Default_Handler, .-Default_Handler
 
-/* ===========================================================================
- * RESET HANDLER
+/**
+ * @brief Reset entry point.
  *
  * Order is deliberate:
- *   1. Enable the FPU. It is disabled from reset (PM0214 §4.6.1). The build
- *      uses -mfloat-abi=hard, so any float instruction before this would
- *      raise a NOCP UsageFault.
- *   2. Copy .data from flash to RAM. These variables have non-zero
- *      initialisers, so the initialiser bytes live in flash but the variable
- *      must live in RAM.
- *   3. Zero .bss. These have no initialiser, they just need RAM.
+ *   1. Enable the FPU — the build uses -mfloat-abi=hard, so any float
+ *      instruction before this raises a NOCP UsageFault (PM0214 §4.6.1).
+ *   2. Copy .data from flash to RAM.
+ *   3. Zero .bss.
  *   4. Call main.
- * ========================================================================= */
+ */
   .section .text.Reset_Handler,"ax",%progbits
   .weak Reset_Handler
   .type Reset_Handler, %function
 Reset_Handler:
 
-/* --- 1. Enable the FPU (CPACR, PM0214 §4.6.6) ---
- * CPACR is at 0xE000ED88. Bits 23:20 hold CP11/CP10 access; 0b11 in each
- * field = full access. DSB then ISB so the pipeline sees the change. */
+/* 1. Enable the FPU. CPACR bits 23:20 hold CP10/CP11; 0b11 each gives full
+ *    access (PM0214 §4.6.6). DSB then ISB so the pipeline sees the change. */
   ldr r0, =0xE000ED88
   ldr r1, [r0]
   orr r1, r1, #(0xF << 20)
@@ -213,8 +187,7 @@ Reset_Handler:
   dsb
   isb
 
-/* --- 2. Copy .data: flash -> RAM ---
- * src = _sidata (LMA, in flash)   dst = _sdata.._edata (VMA, in RAM) */
+/* 2. Copy .data: _sidata (LMA, flash) -> _sdata.._edata (VMA, RAM) */
   ldr r0, =_sdata
   ldr r1, =_edata
   ldr r2, =_sidata
@@ -225,7 +198,7 @@ CopyDataInit:
   str r3, [r0], #4
   b CopyDataInit
 
-/* --- 3. Zero .bss: _sbss.._ebss --- */
+/* 3. Zero .bss: _sbss.._ebss */
 ZeroBssInit:
   ldr r0, =_sbss
   ldr r1, =_ebss
@@ -236,23 +209,19 @@ FillZerobss:
   str r2, [r0], #4
   b FillZerobss
 
-/* --- 4. Call main --- */
+/* 4. Call main. It must not return. */
 CallMain:
   bl main
 InfiniteLoop:
   b InfiniteLoop
   .size Reset_Handler, .-Reset_Handler
 
-/* ===========================================================================
- * WEAK ALIASES
+/**
+ * @brief Weak aliases for every vector in the table.
  *
- * Every handler name used in the vector table must exist. These make each one
- * resolve to Default_Handler unless the application provides its own.
- *
- * NOTE on __libc_init_array: NOT called. This project is plain C11 with no
- * C++ and no __attribute__((constructor)) functions, so there are no static
- * constructors to run. The F103 reference calls it; we deliberately do not.
- * ========================================================================= */
+ * __libc_init_array is deliberately not called: plain C11, no C++ and no
+ * __attribute__((constructor)), so there is nothing to initialise.
+ */
   def_handler NMI_Handler
   def_handler HardFault_Handler
   def_handler MemManage_Handler

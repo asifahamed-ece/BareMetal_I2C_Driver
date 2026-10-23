@@ -1,120 +1,76 @@
-/* ===========================================================================
- * stm32f411.ld — Linker script for the STM32F411CEU6
- * ===========================================================================
+/**
+ * @file    stm32f411.ld
+ * @brief   Linker script for the STM32F411CEU6 (Cortex-M4F).
  *
- * TARGET      : STM32F411CEU6 (WeAct BlackPill V3.0)
- * CORE        : Cortex-M4F (ARMv7E-M, single-precision FPU)
+ * The compiler emits sections with no idea where they live. This script says
+ * how much memory exists, which section goes where, and what the boundary
+ * addresses are.
  *
- * MEMORY MAP  (RM0383 §2.2.3 — verified against the silicon with
- *               `st-info --probe`: flash: 524288, sram: 131072)
- *   FLASH  512 KB  @ 0x08000000   (0x08000000 - 0x0807FFFF)
- *   SRAM1  128 KB  @ 0x20000000   (0x20000000 - 0x2001FFFF)
+ * Memory map verified against silicon (RM0383 §2.2.3):
+ *   FLASH  512 KB @ 0x08000000
+ *   SRAM1  128 KB @ 0x20000000
  *
- * WHAT THIS FILE DOES
- *   The compiler emits *sections*; it has no idea where they will live. This
- *   script tells the linker:
- *     1. how much memory exists, and where          (MEMORY block)
- *     2. which section goes where, in what order     (SECTIONS block)
- *     3. the boundary addresses the startup code needs (the _s* symbols)
+ * @note .isr_vector MUST be first. On reset the CPU reads SP from
+ *       0x00000000 and the reset vector from 0x00000004, and 0x00000000 is
+ *       an alias of 0x08000000.
  *
- * THE ONE RULE THAT GOVERNS EVERYTHING
- *   The CPU resets by reading two words from address 0x00000000:
- *     word 0 = initial stack pointer
- *     word 1 = address of the reset handler
- *   0x00000000 is an ALIAS of flash 0x08000000 (RM0383 §2.2.3).
- *   Therefore .isr_vector MUST be the first bytes in flash, and MUST be
- *   listed first in the SECTIONS block below.
- *
- * SYMBOL CONTRACT WITH startup_stm32f411.s
- *   This file defines the addresses; the startup file reads them. The names
- *   below follow the ST convention (not the libopencm3 one) and must match
- *   exactly in both files:
- *
- *     _estack   initial stack pointer (top of RAM)
- *     _sidata   LOAD address of .data  -> the copy SOURCE  (in flash)
- *     _sdata    START address of .data -> the copy DEST    (in RAM)
- *     _edata    END address of .data
- *     _sbss     START address of .bss
- *     _ebss     END address of .bss
- *
- * ---------------------------------------------------------------------------
+ * @note Symbols shared with startup_stm32f411.s. Both files must agree:
+ *         _estack  initial SP (top of RAM)
+ *         _sidata  load address of .data  (copy source, flash)
+ *         _sdata   start of .data         (copy destination, RAM)
+ *         _edata   end of .data
+ *         _sbss    start of .bss
+ *         _ebss    end of .bss
  */
 
 ENTRY(Reset_Handler)
 
-/* ---------------------------------------------------------------------------
- * Initial stack pointer.
+/**
+ * @brief Initial stack pointer.
  *
- * The stack grows DOWNWARD from here, so this must be the highest valid RAM
- * address. It is derived from the RAM region rather than hardcoded so that it
- * can never drift out of sync with the MEMORY block below. (The F103
- * reference hardcodes 0x20004FFF; change the RAM size there and you must
- * remember to change two places. Here there is only one place.)
- *
- * Result: 0x20000000 + 128K = 0x20020000, which is 8-byte aligned as the ARM
- * procedure-call standard requires.
- * ------------------------------------------------------------------------- */
+ * The stack grows down, so this is the highest valid RAM address. Derived
+ * from the RAM region so it cannot drift out of sync with MEMORY below.
+ * 0x20000000 + 128K = 0x20020000, already 8-byte aligned.
+ */
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
-/* ---------------------------------------------------------------------------
- * Space reserved for the stack, and a link-time check that it fits.
+/**
+ * @brief Stack reservation.
  *
- * This is NOT a runtime limit. Reserving it means that if code + data + stack
- * no longer fit in RAM, the LINK FAILS with a clear "region RAM overflowed"
- * error instead of the program crashing mysteriously at run time.
- *
- * 4 KB is deliberate: Phase 1 adds an I2C driver with nested call frames and
- * buffers. 1 KB is uncomfortably tight; 8 KB wastes RAM on a 128 KB part.
- * ------------------------------------------------------------------------- */
+ * Not a runtime limit — it makes the LINK fail with "region RAM overflowed"
+ * if code + data + stack stop fitting, instead of the program corrupting
+ * memory at run time.
+ */
 _Min_Stack_Size = 0x1000;
 
-/* ---------------------------------------------------------------------------
- * No heap. This project allocates nothing dynamically (C11, no malloc), so
- * there is no _Min_Heap_Size. If you ever add malloc, add the reservation
- * here too, or the linker will happily let the heap eat your stack.
- * ------------------------------------------------------------------------- */
-
-/* ===========================================================================
- * MEMORY REGIONS
+/**
+ * @brief Memory regions.
  *
- *   ORIGIN  = start address
- *   LENGTH  = size
- *   (rwx)   = permissions the linker enforces. r=read w=write x=execute.
- *            RAM is rwx so that a mistake placing code in RAM is caught.
- * ========================================================================= */
+ * (rwx) are permissions the linker enforces. RAM is rwx so that placing code
+ * in RAM is caught rather than silently allowed.
+ */
 MEMORY
 {
   FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
   RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
-/* ===========================================================================
- * OUTPUT SECTIONS
+/**
+ * @brief Output sections.
  *
- * ld walks this block TOP TO BOTTOM and assigns addresses in that order.
- * The order here IS the memory layout. If .isr_vector is not first, the
- * vector table is not at 0x08000000 and the chip resets to garbage — with
- * no error and no warning from the toolchain.
- * ========================================================================= */
+ * ld walks this block top to bottom and assigns addresses in that order, so
+ * the order here IS the memory layout.
+ */
 SECTIONS
 {
-  /* -------------------------------------------------------------------------
-   * .isr_vector — THE VECTOR TABLE. Must be the first bytes in flash.
+  /**
+   * @brief Vector table. First bytes in flash.
    *
-   * KEEP() protects it from --gc-sections, which is free to discard
-   * "unused" sections. Without KEEP, the linker may remove the vector table
-   * and the chip will reset to 0x00000000.
-   *
-   * NOTE: the corresponding input section must be declared with the "a"
-   * (alloc) attribute in startup_stm32f411.s:
-   *     .section .isr_vector,"a",%progbits
-   * Without "a" the section is not marked loadable, the FLASH region is not
-   * advanced for it, .text lands on top of it at 0x08000000, and
-   * .isr_vector ends up in no program header — so it is never flashed at
-   * all. The build succeeds; the chip locks up. This was root-caused on this
-   * board, so check it:
-   *     arm-none-eabi-readelf -S build/app.elf | grep isr_vector   # needs "A"
-   * ---------------------------------------------------------------------- */
+   * KEEP() stops --gc-sections from discarding it as "unused". The matching
+   * input section in startup_stm32f411.s must carry the "a" (alloc)
+   * attribute; without it the table is never flashed and the chip locks up.
+   * Verify: arm-none-eabi-readelf -S build/app.elf | grep isr_vector
+   */
   .isr_vector :
   {
     . = ALIGN(4);
@@ -122,16 +78,14 @@ SECTIONS
     . = ALIGN(4);
   } > FLASH
 
-  /* -------------------------------------------------------------------------
-   * .text — program code.
-   *   *(.text*)  is a glob: every input section whose name starts with
-   *              .text (.text, .text.main, .text.foo, ...).
-   * ---------------------------------------------------------------------- */
+  /**
+   * @brief Program code. *(.text*) also catches .text.main, .text.foo, ...
+   */
   .text :
   {
     . = ALIGN(4);
     *(.text*)
-    *(.glue_7)         /* ARM<->Thumb interworking veneers */
+    *(.glue_7)
     *(.glue_7t)
     *(.eh_frame)
     KEEP(*(.init))
@@ -139,11 +93,9 @@ SECTIONS
     . = ALIGN(4);
   } > FLASH
 
-  /* -------------------------------------------------------------------------
-   * .rodata — read-only data: string literals, const globals.
-   * It lives in FLASH because it never changes. Putting it in RAM would
-   * waste RAM and break const semantics.
-   * ---------------------------------------------------------------------- */
+  /**
+   * @brief Read-only data: string literals, const globals. Stays in flash.
+   */
   .rodata :
   {
     . = ALIGN(4);
@@ -152,8 +104,7 @@ SECTIONS
     . = ALIGN(4);
   } > FLASH
 
-  /* ARM unwind tables. Empty in pure C, but keeping them here costs nothing
-   * and avoids a surprise if C++ exceptions are ever enabled. */
+  /* ARM unwind tables. Empty in pure C. */
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
@@ -166,8 +117,7 @@ SECTIONS
     __exidx_end = .;
   } > FLASH
 
-  /* C/C++ static constructor and destructor tables. Empty in plain C, but
-   * if __libc_init_array is ever called these must be kept. */
+  /* Static constructor and destructor tables. Empty in plain C. */
   .preinit_array :
   {
     PROVIDE_HIDDEN(__preinit_array_start = .);
@@ -191,32 +141,19 @@ SECTIONS
     PROVIDE_HIDDEN(__fini_array_end = .);
   } > FLASH
 
-  /* -------------------------------------------------------------------------
-   * .data — initialised, writable globals.
+  /**
+   * @brief Initialised writable globals — the VMA/LMA split.
    *
-   * This is the VMA/LMA split, and it is the part most people get wrong.
+   * A global such as `int counter = 5;` is writable, so it must live in RAM.
+   * The initial value has to survive a power cycle, so it is stored in flash.
+   * One variable therefore needs two addresses:
    *
-   * A global like `int counter = 5;` is writable, so the CPU must read it
-   * from RAM. But the initial value `5` has to be stored somewhere, and only
-   * flash survives a power cycle. So one variable needs TWO addresses:
+   *   VMA  set by "> RAM"       where it RUNS
+   *   LMA  set by "AT> FLASH"   where it is LOADED FROM
    *
-   *   VMA (virtual)  = 0x20000000  (RAM)  set by "> RAM"   where it RUNS
-   *   LMA (load)      = 0x0800xxxx  (FLASH) set by "AT> FLASH" where it is
-   *                                                LOADED FROM
-   *
-   *   FLASH:  [vector][.text][.rodata][ 5 ]   <- the "5" lives here
-   *                   |
-   *                   |  startup code copies this (LMA -> VMA)
-   *                   v
-   *   RAM:    [counter = 5 ][ uninitialised .bss ]
-   *
-   *   _sidata = LOADADDR(.data) saves the LMA so the startup code knows
-   *   where to copy FROM. _sdata/_edata give the destination range.
-   *
-   * OMITTING "AT> FLASH" IS A SILENT FAILURE: the linker then believes the
-   * initialisers load from RAM, where they do not exist. You get garbage
-   * values, or a spurious "region RAM overflow" error.
-   * ---------------------------------------------------------------------- */
+   * @warning Omitting "AT> FLASH" is a silent failure: the linker believes
+   *          the initialisers load from RAM, where they do not exist.
+   */
   _sidata = LOADADDR(.data);
 
   .data :
@@ -229,18 +166,13 @@ SECTIONS
     _edata = .;
   } > RAM AT> FLASH
 
-  /* -------------------------------------------------------------------------
-   * .bss — uninitialised globals. They need RAM but no flash space; the
-   * startup code simply zeroes them.
+  /**
+   * @brief Uninitialised globals.
    *
-   * .bss is NOBITS in the ELF: it occupies address space but contributes
-   * ZERO bytes to the flash image. That is why a 128 KB RAM part can have a
-   * .bss larger than the whole binary.
-   *
-   * *(COMMON) covers the legacy -fcommon GCC behaviour. GCC 10+ defaults to
-   * -fno-common, so uninitialised globals land straight in .bss and COMMON
-   * is empty. Harmless to keep.
-   * ---------------------------------------------------------------------- */
+   * NOBITS in the ELF: occupies address space but contributes zero bytes to
+   * the flash image. The startup code zeroes it. *(COMMON) covers the legacy
+   * -fcommon behaviour and is empty on GCC 10+.
+   */
   .bss :
   {
     . = ALIGN(4);
@@ -252,19 +184,15 @@ SECTIONS
     _ebss = .;
   } > RAM
 
-  /* -------------------------------------------------------------------------
-   * ._user_heap_stack — reserve the stack at the top of RAM.
+  /**
+   * @brief Carve the stack out of RAM so the link can prove it fits.
    *
-   * '.' is the current address (the location counter). This block moves it
-   * forward by _Min_Stack_Size, carving the stack out of RAM so the linker
-   * can prove code + data + stack still fit.
+   * '.' is the location counter; advancing it reserves the space. ALIGN(8)
+   * because the ARM ABI requires an 8-byte aligned SP at exception entry.
    *
-   * ALIGN(8) because the ARM procedure-call standard requires the stack
-   * pointer to be 8-byte aligned at exception entry.
-   *
-   * There is no heap: this project does not use malloc. If you add it, add a
-   * _Min_Heap_Size reservation here too.
-   * ---------------------------------------------------------------------- */
+   * @note No heap: this project never calls malloc. If that changes, add a
+   *       heap reservation here or the heap will eat the stack.
+   */
   ._user_heap_stack :
   {
     . = ALIGN(8);
@@ -274,17 +202,13 @@ SECTIONS
     . = ALIGN(8);
   } > RAM
 
-  /* -------------------------------------------------------------------------
-   * /DISCARD/ — throw these away.
+  /**
+   * @brief Discarded sections.
    *
-   * .ARM.attributes is toolchain metadata. .ARM.exidx* is C++ exception
-   * index data (already placed above; this catches any stragglers).
-   *
-   * NOTE: do NOT copy the F103 reference's /DISCARD/ block, which drops
-   * libc.a, libm.a and libgcc.a entirely. That is correct for Ac6 System
-   * Workbench, which links those separately, but for this build it would
-   * discard memcpy, memset and the compiler's division helpers.
-   * ---------------------------------------------------------------------- */
+   * @warning Do not add libc.a / libm.a / libgcc.a here. The F103 reference
+   *          does, because Ac6 System Workbench links them separately. Here
+   *          it would discard memcpy, memset and the division helpers.
+   */
   /DISCARD/ :
   {
     *(.ARM.attributes)
