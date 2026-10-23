@@ -8,21 +8,23 @@
 #define LED_PORT     GPIOC
 
 #define HSI_HZ       16000000UL
-#define SYSTICK_1MS  (HSI_HZ / 1000UL - 1UL)
+#define SYSTICK_1MS  ((HSI_HZ / 1000UL) - 1UL)
 
 static void timebase_init(void) {
     /* No TICKINT: SysTick_Handler is a weak alias to Default_Handler, which
        is `b .`. Enabling the interrupt freezes the chip 1 ms after boot. */
     STK_CSR = 0U;
+    // Using the Processor Clk instead of default AHB/8 for 1ms
     STK_RVR = SYSTICK_1MS;
     STK_CVR = 0U;
-    STK_CSR = STK_CSR_ENABLE;
+    STK_CSR = STK_CSR_ENABLE | STK_CSR_CLKSOURCE;
 }
 
 static void delay_ms(uint32_t ms) {
-    while (ms-- > 0U) {
+    while (ms > 0U) {
         while ((STK_CSR & STK_CSR_COUNTFLAG) == 0U) {
         }
+        ms--;
     }
 }
 
@@ -50,8 +52,8 @@ int main(void) {
 
     while (1) {
         led_set(true);
-        delay_ms(250);
+        delay_ms(1000);
         led_set(false);
-        delay_ms(250);
+        delay_ms(100);
     }
 }
