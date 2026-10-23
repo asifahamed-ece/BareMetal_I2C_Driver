@@ -98,16 +98,29 @@ disasm: $(BUILD)/$(TARGET).elf
 .PHONY: flash
 flash: $(BUILD)/$(TARGET).elf
 	$(OPENOCD) -f $(TOOLS_DIR)/openocd.cfg \
-		-c "program $< verify reset exit"
+		-c "init" \
+		-c "reset_config none" \
+		-c "reset halt" \
+		-c "program $< verify" \
+		-c "reset" \
+		-c "exit"
+
+.PHONY: server
+server:
+	$(OPENOCD) -f $(TOOLS_DIR)/openocd.cfg
 
 .PHONY: debug
 debug: $(BUILD)/$(TARGET).elf
-	$(OPENOCD) -f $(TOOLS_DIR)/openocd.cfg &
+	-pkill -9 openocd 2>/dev/null; true
+	$(OPENOCD) -f $(TOOLS_DIR)/openocd.cfg & OPENOCD_PID=$$!; \
+	sleep 0.8; \
+	trap 'kill $$OPENOCD_PID 2>/dev/null' EXIT INT TERM; \
 	$(GDB) -ex "target extended-remote :3333" \
-		   -ex "monitor reset halt" \
-		   -ex "load $<" \
-		   -ex "break main" \
-		   $<
+	       -ex "monitor reset halt" \
+	       -ex "load $<" \
+	       -ex "break main" \
+	       -ex "continue" \
+	       $<
 		
 .PHONY: clean
 clean:
