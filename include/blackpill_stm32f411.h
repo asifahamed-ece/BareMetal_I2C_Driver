@@ -52,6 +52,21 @@
 #define RCC_APB2ENR_SYSCFGEN  (1U << 14)  ///< Required for EXTI pin mapping
 /** @} */
 
+#define PWR_BASE               ((uint32_t)0x40007000)
+
+#define PWR_CR                 (*(volatile uint32_t*)(PWR_BASE + 0x00U))
+#define PWR_CSR                (*(volatile uint32_t*)(PWR_BASE + 0x04U))
+
+
+#define FLASH_BASE             ((uint32_t)0x40023C00) 
+
+#define FLASH_ACR              (*(volatile uint32_t*)(FLASH_BASE + 0x00U))
+#define FLASH_KEYR             (*(volatile uint32_t*)(FLASH_BASE + 0x04U))
+#define FLASH_OPTKEYR          (*(volatile uint32_t*)(FLASH_BASE + 0x08U))
+#define FLASH_SR               (*(volatile uint32_t*)(FLASH_BASE + 0x0CU))
+#define FLASH_CR               (*(volatile uint32_t*)(FLASH_BASE + 0x10U))
+#define FLASH_OPTCR            (*(volatile uint32_t*)(FLASH_BASE + 0x14U))
+
 /** @name GPIO — general purpose I/O
  *  RM0383 §8.4, Table 27. Every port has the same register layout.
  *  @{ */
@@ -375,5 +390,44 @@ typedef struct
 #define RCC_APB1ENR_I2C1EN    (1U << 21)
 #define RCC_APB1ENR_TIM3EN    (1U << 1)
 /** @} */
+
+
+#define RCC_APB1ENR_PWREN      (1U << 28U) ///< PWR RESET ; Enable PWR Clock
+#define VOS_Scale1             (0x03U << 14U)   ///< SET Voltage Scaling to 0b11 for fCLK <= 100MHz
+#define VOS_Scale2             (0x02U << 14U)   // Scale 2 : <= 84Mhz
+#define VOS_Scale3             (0x01U << 14U)   // Scale 3 : <= 16MHz
+
+#define FLASH_LATENCY_3WAITS   (0x03U << 0U)
+#define FLASH_PRFTEN           (1U << 8U)
+#define FLASH_ICEN             (1U << 9U)
+#define FLASH_DCEN             (1U << 10U)
+
+#define RCC_PLLSRC_HSE         (0x01U << 22U)
+#define RCC_PLLSRC_HSI         (0x00U << 22U)
+
+// RCC_PLLCFGR Bit Definitions
+#define RCC_PLLCFGR_PLLM_Pos     0U
+#define RCC_PLLCFGR_PLLM_Msk     (0x3FU << RCC_PLLCFGR_PLLM_Pos)
+
+#define RCC_PLLCFGR_PLLN_Pos     6U
+#define RCC_PLLCFGR_PLLN_Msk     (0x1FFU << RCC_PLLCFGR_PLLN_Pos)
+
+#define RCC_PLLCFGR_PLLP_Pos     16U
+#define RCC_PLLCFGR_PLLP_Msk     (0x3U << RCC_PLLCFGR_PLLP_Pos)
+
+#define RCC_PLLCFGR_PLLSRC_Pos   22U
+#define RCC_PLLCFGR_PLLSRC_Msk   (0x1U << RCC_PLLCFGR_PLLSRC_Pos)
+
+#define RCC_PLLCFGR_PLLQ_Pos     24U
+#define RCC_PLLCFGR_PLLQ_Msk     (0xFU << RCC_PLLCFGR_PLLQ_Pos)
+
+#define RCC_CR_PLL_ON            (1U << 24U)  // Set for Enabling PLL
+#define RCC_CR_PLL_RDY           (1U << 25U)  // Sets when PLL is Ready
+
+#define RCC_CFGR_PLL_SYSCLK      (0x10U << 0U)
+#define RCC_CFGR_HSE_SYSCLE      (0x01U << 0U)
+#define RCC_CFGR_HSI_SYSCLK      (0x00U << 0U)
+
+#define RCC_CLK_SWS              (1U << 2U)  // Read the Status of RCC Clock Switch
 
 #endif /* BLACKPILL_STM32F411_H */
