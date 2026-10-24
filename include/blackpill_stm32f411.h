@@ -52,6 +52,29 @@
 #define RCC_APB2ENR_SYSCFGEN  (1U << 14)  ///< Required for EXTI pin mapping
 /** @} */
 
+/** @name PWR — power controller
+ *  RM0383 §5.4. Voltage scaling must be raised before SYSCLK goes up.
+ *  @{ */
+#define PWR_BASE              ((uint32_t)0x40007000U)
+
+#define PWR_CR                (*(volatile uint32_t*)(PWR_BASE + 0x00U))  ///< VOS is bits 15:14
+#define PWR_CSR               (*(volatile uint32_t*)(PWR_BASE + 0x04U))
+/** @} */
+
+/** @name FLASH — embedded flash interface
+ *  RM0383 §3.8. Wait states must be raised before SYSCLK exceeds the limit
+ *  they currently support, or the CPU fetches garbage.
+ *  @{ */
+#define FLASH_BASE            ((uint32_t)0x40023C00U)
+
+#define FLASH_ACR             (*(volatile uint32_t*)(FLASH_BASE + 0x00U))  ///< Latency is bits 3:0
+#define FLASH_KEYR            (*(volatile uint32_t*)(FLASH_BASE + 0x04U))
+#define FLASH_OPTKEYR         (*(volatile uint32_t*)(FLASH_BASE + 0x08U))
+#define FLASH_SR              (*(volatile uint32_t*)(FLASH_BASE + 0x0CU))
+#define FLASH_CR              (*(volatile uint32_t*)(FLASH_BASE + 0x10U))
+#define FLASH_OPTCR           (*(volatile uint32_t*)(FLASH_BASE + 0x14U))
+/** @} */
+
 /** @name GPIO — general purpose I/O
  *  RM0383 §8.4, Table 27. Every port has the same register layout.
  *  @{ */
@@ -375,5 +398,58 @@ typedef struct
 #define RCC_APB1ENR_I2C1EN    (1U << 21)
 #define RCC_APB1ENR_TIM3EN    (1U << 1)
 /** @} */
+
+
+/** @name PLL and clock-tree configuration
+ *  RM0383 §6.3. The PLL chain is:
+ *    HSI / PLLM = VCO input (1-2 MHz)
+ *    VCO input x PLLN = VCO output (100-432 MHz)
+ *    VCO output / PLLP = SYSCLK
+ *    VCO output / PLLQ = 48 MHz domain
+ *  @{ */
+#define RCC_APB1ENR_PWREN      (1U << 28U)       ///< PWR clock; needed before writing PWR_CR
+#define VOS_Scale1             (0x03U << 14U)    ///< Scale 1, required above 84 MHz
+#define VOS_Scale2             (0x02U << 14U)    ///< Scale 2, up to 84 MHz
+#define VOS_Scale3             (0x01U << 14U)    ///< Scale 3, up to 16 MHz
+
+#define FLASH_LATENCY_3WAITS   (0x03U << 0U)     ///< 3 wait states, 90-100 MHz at 2.7-3.6 V
+#define FLASH_PRFTEN           (1U << 8U)        ///< Prefetch
+#define FLASH_ICEN             (1U << 9U)        ///< Instruction cache
+#define FLASH_DCEN             (1U << 10U)       ///< Data cache
+
+#define RCC_PLLSRC_HSE         (0x01U << 22U)    ///< PLL input = HSE
+#define RCC_PLLSRC_HSI         (0x00U << 22U)    ///< PLL input = HSI
+
+#define RCC_PLLCFGR_PLLM_Pos   0U                ///< Bits 5:0, VCO input divider
+#define RCC_PLLCFGR_PLLM_Msk   (0x3FU << RCC_PLLCFGR_PLLM_Pos)
+
+#define RCC_PLLCFGR_PLLN_Pos   6U                ///< Bits 14:6, VCO multiplier
+#define RCC_PLLCFGR_PLLN_Msk   (0x1FFU << RCC_PLLCFGR_PLLN_Pos)
+
+#define RCC_PLLCFGR_PLLP_Pos   16U               ///< Bits 17:16, 00 = /2, 01 = /4, 10 = /6, 11 = /8
+#define RCC_PLLCFGR_PLLP_Msk   (0x3U << RCC_PLLCFGR_PLLP_Pos)
+
+#define RCC_PLLCFGR_PLLSRC_Pos 22U               ///< 0 = HSI, 1 = HSE
+#define RCC_PLLCFGR_PLLSRC_Msk (0x1U << RCC_PLLCFGR_PLLSRC_Pos)
+
+#define RCC_PLLCFGR_PLLQ_Pos   24U               ///< Bits 27:24, 48 MHz domain divider
+#define RCC_PLLCFGR_PLLQ_Msk   (0xFU << RCC_PLLCFGR_PLLQ_Pos)
+
+#define RCC_CR_PLL_ON          (1U << 24U)       ///< PLL enable
+#define RCC_CR_PLL_RDY         (1U << 25U)       ///< Set once the PLL has locked
+
+#define RCC_CFGR_HSI_SYSCLK    (0x00U << 0U)     ///< SW = HSI
+#define RCC_CFGR_HSE_SYSCLE    (0x01U << 0U)     ///< SW = HSE. @bug name typo, should be HSE_SYSCLK
+
+/** @brief SW = PLL.
+ *  @bug Value is 0x10, but SW is bits 1:0 — 0x10 sets HPRE bit 4 as well and
+ *       would silently halve AHB. Should be (0x02U << 0U). */
+#define RCC_CFGR_PLL_SYSCLK    (0x10U << 0U)
+
+/** @brief Mask for the SWS field. @bug SWS is bits 3:2; only bit 2 is
+ *         covered here. Should be (0x3U << 2U). */
+#define RCC_CLK_SWS            (1U << 2U)
+/** @} */
+
 
 #endif /* BLACKPILL_STM32F411_H */
