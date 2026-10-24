@@ -9,9 +9,11 @@
 #include "blackpill_stm32f411.h"
 #include "clock.h"
 #include "timebase.h"
+#include "uart.h"
 
 #define LED_PIN      13U      ///< Onboard LED, active low (0 = lit)
 #define LED_PORT     GPIOC
+
 
 /** @brief Configure PC13 as a push-pull output, starting dark. */
 static void led_init(void) {
@@ -47,11 +49,16 @@ int main(void) {
     clock_init_100Mhz();    
     timebase_init();
     led_init();
+    uart2_init();
 
+    // uart_print("Comms Test !\r\n");
+    // uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
+    
     while (1) {
+        uart_write_char('U');  // Send exactly one byte
         led_set(true);
         delay_us(1000000);
         led_set(false);
-        delay_us(2000000);
+        delay_us(1000000);
     }
 }
