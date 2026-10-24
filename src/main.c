@@ -7,11 +7,12 @@
 #include <stdbool.h>
 
 #include "blackpill_stm32f411.h"
+#include "clock.h"
 
 #define LED_PIN      13U      ///< Onboard LED, active low (0 = lit)
 #define LED_PORT     GPIOC
 
-#define HSI_HZ       16000000UL
+#define HSI_HZ       100000000UL
 #define SYSTICK_1MS  ((HSI_HZ / 1000UL) - 1UL)
 
 /**
@@ -60,13 +61,16 @@ static void led_set(bool on) {
 }
 
 int main(void) {
+
+    clock_init_100Mhz();    
+
     led_init();
     timebase_init();
 
     while (1) {
         led_set(true);
-        delay_ms(1000);
-        led_set(false);
         delay_ms(100);
+        led_set(false);
+        delay_ms(1000);
     }
 }
