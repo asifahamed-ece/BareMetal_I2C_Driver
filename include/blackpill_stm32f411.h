@@ -83,7 +83,7 @@
 #define DWT_CYCCNT            (*(volatile uint32_t*)(DWT_BASE + 0x04U))
 
 #define CoreDebug_BASE        ((uint32_t)0xE000EDF0U)
-#define CoreDebug_DEMCR       (*(volatile uint32_t*)(CoreDebug_BASE + 0x04U))
+#define CoreDebug_DEMCR       (*(volatile uint32_t*)(CoreDebug_BASE + 0x0CU))
 
 #define TRCENA               (1U << 24U)
 #define CYCCNTENA             (1U << 0U)

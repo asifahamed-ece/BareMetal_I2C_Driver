@@ -8,34 +8,10 @@
 
 #include "blackpill_stm32f411.h"
 #include "clock.h"
+#include "timebase.h"
 
 #define LED_PIN      13U      ///< Onboard LED, active low (0 = lit)
 #define LED_PORT     GPIOC
-
-#define HSI_HZ       100000000UL   ///< SYSCLK after clock_init_100Mhz(); name is stale
-#define SYSTICK_1MS  ((HSI_HZ / 1000UL) - 1UL)
-
-/**
- * @brief Start SysTick as a 1 ms down-counter on the processor clock.
- * @warning TICKINT stays clear. SysTick_Handler is a weak alias to
- *          Default_Handler (`b .`), so enabling the interrupt freezes the
- *          chip one millisecond after boot.
- */
-static void timebase_init(void) {
-    STK_CSR = 0U;
-    STK_RVR = SYSTICK_1MS;
-    STK_CVR = 0U;
-    STK_CSR = STK_CSR_ENABLE | STK_CSR_CLKSOURCE;
-}
-
-/** @brief Blocking delay, polling COUNTFLAG. @param ms Milliseconds. */
-static void delay_ms(uint32_t ms) {
-    while (ms > 0U) {
-        while ((STK_CSR & STK_CSR_COUNTFLAG) == 0U) {
-        }
-        ms--;
-    }
-}
 
 /** @brief Configure PC13 as a push-pull output, starting dark. */
 static void led_init(void) {
@@ -69,14 +45,13 @@ static void led_set(bool on) {
 int main(void) {
 
     clock_init_100Mhz();    
-
-    led_init();
     timebase_init();
+    led_init();
 
     while (1) {
         led_set(true);
-        delay_ms(100);
+        delay_us(1000000);
         led_set(false);
-        delay_ms(1000);
+        delay_us(2000000);
     }
 }
