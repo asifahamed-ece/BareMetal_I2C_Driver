@@ -75,6 +75,22 @@
 #define FLASH_OPTCR           (*(volatile uint32_t*)(FLASH_BASE + 0x14U))
 /** @} */
 
+/** @name DWT — Data Watchpoint and Trace (Core Peripheral)
+ *  ARMv7-M Architecture Reference Manual
+ *  @{ */
+#define DWT_BASE              ((uint32_t)0xE0001000U)
+#define DWT_CTRL              (*(volatile uint32_t*)(DWT_BASE + 0x00U))
+#define DWT_CYCCNT            (*(volatile uint32_t*)(DWT_BASE + 0x04U))
+
+#define CoreDebug_BASE        ((uint32_t)0xE000EDF0U)
+#define CoreDebug_DEMCR       (*(volatile uint32_t*)(CoreDebug_BASE + 0x04U))
+
+#define TRCENA               (1U << 24U)
+#define CYCCNTENA             (1U << 0U)
+
+/** @} */
+
+
 /** @name GPIO — general purpose I/O
  *  RM0383 §8.4, Table 27. Every port has the same register layout.
  *  @{ */
