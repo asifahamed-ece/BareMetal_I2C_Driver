@@ -49,6 +49,9 @@
 #define RCC_AHB1ENR_GPIOHEN   (1U << 7)
 
 #define RCC_USART2EN          (1U << 17)  ///< RCC_APB1ENR bit — USART2
+#define USART2_CR1_TE         (1U << 3U) 
+#define USART2_CR1_RE         (1U << 2U)
+
 #define RCC_APB2ENR_SYSCFGEN  (1U << 14)  ///< Required for EXTI pin mapping
 /** @} */
 
