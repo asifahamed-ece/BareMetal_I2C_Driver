@@ -52,6 +52,9 @@
 #define USART2_CR1_TE         (1U << 3U) 
 #define USART2_CR1_RE         (1U << 2U)
 
+#define RCC_APB1ENR_I2C1EN    (1U << 21)
+#define RCC_APB1ENR_TIM3EN    (1U << 1)
+
 #define RCC_APB2ENR_SYSCFGEN  (1U << 14)  ///< Required for EXTI pin mapping
 /** @} */
 
@@ -414,9 +417,9 @@ typedef struct
 #define I2C_SR1_ADDR          (1U << 1)   ///< Address sent/matched; clear by reading SR1 then SR2
 #define I2C_SR1_TXE           (1U << 7)   ///< Data register empty
 #define I2C1_SR1_ACK_FAILURE  (1U << 10)  ///< NACK received
+#define I2C1_SR1_BTF          (1U << 2)   ///< Byte Transfer Completed Flag
+#define I2C1_SR1_BUSY         (1U << 1)   ///< I2C is BUSY Mid-Transmission
 
-#define RCC_APB1ENR_I2C1EN    (1U << 21)
-#define RCC_APB1ENR_TIM3EN    (1U << 1)
 /** @} */
 
 
