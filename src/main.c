@@ -51,12 +51,11 @@ int main(void) {
     led_init();
     uart2_init();
 
-    // uart_print("Comms Test !\r\n");
-    // uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
+    uart_print("Comms Test !\r\n");
+    uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
     
     while (1) {
-        uart_write_char('U');  // Send exactly one byte
-        led_set(true);
+led_set(true);
         delay_us(1000000);
         led_set(false);
         delay_us(1000000);
