@@ -42,14 +42,11 @@ uint8_t i2c_probe(uint8_t addr);
  * @brief   Write @p len bytes from @p data to a 7-bit addressed slave.
  * @param   addr 7-bit address (SSD1306 answers at 0x3C).
  * @param   data Buffer to send; `data[0]` goes on the wire first.
- * @param   len  Number of bytes; must be <= 255.
+ * @param   len  Number of bytes to send.
  * @return  1 on success, 0 on NACK or on any timeout. A STOP is always
  *          issued before returning, so the bus is left idle either way.
  *
  * @warning Write only — no repeated START and no read path yet.
- * @warning @p len is compared against a `uint8_t` loop counter, so lengths
- *          above 255 would wrap and never terminate. Guarded at the call
- *          sites today; worth changing the counter to `uint32_t` eventually.
  */
 uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len);
 

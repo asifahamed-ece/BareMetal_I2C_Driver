@@ -418,7 +418,7 @@ typedef struct
 #define I2C_SR1_TXE           (1U << 7)   ///< Data register empty
 #define I2C1_SR1_ACK_FAILURE  (1U << 10)  ///< NACK received
 #define I2C1_SR1_BTF          (1U << 2)   ///< Byte Transfer Completed Flag
-#define I2C1_SR1_BUSY         (1U << 1)   ///< I2C is BUSY Mid-Transmission
+#define I2C_SR2_BUSY          (1U << 1)   ///< Bus busy: set from START until STOP
 
 /** @} */
 
