@@ -47,7 +47,7 @@ void i2c_init()
 uint8_t i2c_probe(uint8_t addr) {
     // 1. Wait for BUSY flag to clear
     uint32_t start = timebase_us();
-    while(I2C1_SR2 & (1U << 1U)) {
+    while(I2C1_SR2 & I2C1_SR1_BUSY) {
         if((timebase_us() - start) > 2000) return 0;
     }
 
@@ -82,4 +82,68 @@ uint8_t i2c_probe(uint8_t addr) {
     I2C1_CR1 |= I2C_CR1_STOP;
 
     return found;
+}
+
+uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len){
+
+    // Check if BUSY flag enabled
+    uint32_t start = timebase_us();
+    while(I2C1_SR2 & I2C1_SR1_BUSY){
+        if((timebase_us() - start) > 2000)  return 0;
+    }
+
+    // Set START bit and wait for Start Bit enabled
+    I2C1_CR1 |= I2C_CR1_START;
+    start = timebase_us();
+    while(!(I2C1_SR1 & I2C_SR1_SB)){
+        if((timebase_us() - start) > 2000) return 0;
+    }
+
+    // Send Address
+    I2C1_DR = (addr << 1) | 0;  // Write mode with Address
+
+    // Wait for the ACK flag
+    start = timebase_us();
+    while(!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C1_SR1_ACK_FAILURE)){
+        if ((timebase_us() - start) > 2000){
+            I2C1_CR1 |= I2C_CR1_STOP;       // STOP condition , If Timeout 
+            return 0;
+        }
+    }
+
+    // Handling when ACK Occured
+    if(I2C1_SR1 & I2C_SR1_ADDR){
+        (void) I2C1_SR2;        // Clearing the Ack Flag if Occured
+    }
+    else{
+        I2C1_SR1 &= ~I2C1_SR1_ACK_FAILURE;  // Manually Handling NACK and Clear it
+        I2C1_CR1 |= I2C_CR1_STOP;       // STOP transmission
+        return 0;
+    }
+
+    // Data Loop { Write data when the TX Buff is Empty}
+    for (uint8_t i = 0; i < len; i++) {
+        // Wait for TXE
+        start = timebase_us();
+        while (!(I2C1_SR1 & I2C_SR1_TXE)) {
+            if ((timebase_us() - start) > 2000){
+                I2C1_CR1 |= I2C_CR1_STOP;       // STOP if Timeout
+                return 0;
+            }
+        }
+        // Load the byte
+        I2C1_DR = data[i];
+    }
+
+    // Wait and Verify the Byte Transfer Flag has Set
+    start = timebase_us();
+    while(!(I2C1_SR1 & I2C1_SR1_BTF)){
+        if((timebase_us() - start) > 2000){
+            I2C1_CR1 |= I2C_CR1_STOP;       // Return if Timeout waiting for the Flag
+            return 0;
+        }
+    }
+
+    I2C1_CR1 |= I2C_CR1_STOP;   // Set the STOP bit after Last Bit
+    return 1;
 }
