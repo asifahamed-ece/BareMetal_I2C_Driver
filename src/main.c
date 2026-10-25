@@ -11,6 +11,7 @@
 #include "timebase.h"
 #include "uart.h"
 #include "i2c.h"
+#include "ssd1306.h"
 
 #define LED_PIN      13U      ///< Onboard LED, active low (0 = lit)
 #define LED_PORT     GPIOC
@@ -74,14 +75,22 @@ int main(void) {
     }
     uart_print("Scanning done...!\r\n");
 
-    while (1) {
-        
-        delay_us(10000000);
+    uart_print("Initializing OLED...\r\n");
+    delay_us(100000);       // Wait 100ms for the OLED power to stabilize
+    SSD1306_Init();         // Send the init sequence (from your ssd1306.c)
+    uart_print("OLED Initialized\r\n");
 
-        uart_print("System Alive\r\n");
-        led_set(true);
-        delay_us(100000);
-        led_set(false);
-        delay_us(900000); // 1 second total
+    while (1) {
+        // --- STATE 1: EVERYTHING ON ---
+        led_set(true);                      // LED ON
+        OLED_Fill(0xFF);                    // Fill screen with White
+        uart_print("LED ON / Screen WHITE\r\n");
+        delay_us(2000000);                  // Wait 2 seconds
+
+        // --- STATE 2: EVERYTHING OFF ---
+        led_set(false);                     // LED OFF
+        OLED_Fill(0x00);                    // Fill screen with Black
+        uart_print("LED OFF / Screen BLACK\r\n");
+        delay_us(2000000);                  // Wait 2 seconds
     }
 }
