@@ -408,6 +408,7 @@ typedef struct
 #define I2C_CR1_START         (1U << 8)
 #define I2C_CR1_STOP          (1U << 9)
 #define I2C_CR1_ACK           (1U << 10)
+#define I2C_CR1_SWRST         (1U << 15)
 
 #define I2C_SR1_SB            (1U << 0)   ///< START generated
 #define I2C_SR1_ADDR          (1U << 1)   ///< Address sent/matched; clear by reading SR1 then SR2
