@@ -10,6 +10,7 @@
 #include "clock.h"
 #include "timebase.h"
 #include "uart.h"
+#include "i2c.h"
 
 #define LED_PIN      13U      ///< Onboard LED, active low (0 = lit)
 #define LED_PORT     GPIOC
@@ -38,6 +39,13 @@ static void led_set(bool on) {
     }
 }
 
+static void print_hex(uint8_t val){
+    char hex[] = "0123456789ABCDEF";
+    uart_write_char(hex[(val >> 4) & 0x0F]);
+    uart_write_char(hex[val & 0x0F]);
+}
+
+
 /**
  * @brief Blink the onboard LED: 100 ms lit, 1 s dark.
  *
@@ -51,13 +59,29 @@ int main(void) {
     led_init();
     uart2_init();
 
-    uart_print("Comms Test !\r\n");
-    uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
-    
+    i2c_init();
+    uart_print("Scanning I2C Bus...\r\n");
+
+    // uart_print("Comms Test !\r\n");
+    // uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
+
+    for(uint8_t addr = 0x08; addr < 0x78; addr++){
+        if(i2c_probe(addr)){
+            uart_print("Found: 0x");
+            print_hex(addr);
+            uart_print("\r\n");
+        }
+    }
+    uart_print("Scanning done...!\r\n");
+
     while (1) {
-led_set(true);
-        delay_us(1000000);
+        
+        delay_us(10000000);
+
+        uart_print("System Alive\r\n");
+        led_set(true);
+        delay_us(100000);
         led_set(false);
-        delay_us(1000000);
+        delay_us(900000); // 1 second total
     }
 }
