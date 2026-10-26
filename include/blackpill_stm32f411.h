@@ -41,6 +41,7 @@
 #define RCC_APB2ENR           (*(volatile uint32_t*)(RCC_BASE + 0x44U))
 #define RCC_APB2RSTR          (*(volatile uint32_t*)(RCC_BASE + 0x24U))
 
+/* RCC_AHB1ENR bit definitions */
 #define RCC_AHB1ENR_GPIOAEN   (1U << 0)
 #define RCC_AHB1ENR_GPIOBEN   (1U << 1)
 #define RCC_AHB1ENR_GPIOCEN   (1U << 2)   ///< Onboard LED is on PC13
@@ -48,13 +49,14 @@
 #define RCC_AHB1ENR_GPIOEEN   (1U << 4)
 #define RCC_AHB1ENR_GPIOHEN   (1U << 7)
 
-#define RCC_USART2EN          (1U << 17)  ///< RCC_APB1ENR bit — USART2
-#define USART2_CR1_TE         (1U << 3U) 
-#define USART2_CR1_RE         (1U << 2U)
-
-#define RCC_APB1ENR_I2C1EN    (1U << 21)
+/* RCC_APB1ENR bit definitions */
 #define RCC_APB1ENR_TIM3EN    (1U << 1)
+#define RCC_APB1ENR_USART2EN  (1U << 17)  ///< USART2
+#define RCC_APB1ENR_I2C1EN    (1U << 21)
+#define RCC_APB1ENR_PWREN     (1U << 28U) ///< PWR clock; needed before writing PWR_CR
 
+/* RCC_APB2ENR bit definitions */
+#define RCC_APB2ENR_ADC1EN    (1U << 8)
 #define RCC_APB2ENR_SYSCFGEN  (1U << 14)  ///< Required for EXTI pin mapping
 /** @} */
 
@@ -287,13 +289,15 @@ typedef struct
 #define USART2_CR2            (*(volatile uint32_t*)(USART2_BASE + 0x10U))
 #define USART2_CR3            (*(volatile uint32_t*)(USART2_BASE + 0x14U))
 
-#define USART_CR1_UE          (1U << 13)
-#define USART_CR1_TE          (1U << 3)
+/* USART_CR1 bit definitions */
 #define USART_CR1_RE          (1U << 2)
+#define USART_CR1_TE          (1U << 3)
 #define USART_CR1_RXNEIE      (1U << 5)   ///< RXNE interrupt, for interrupt-driven RX
+#define USART_CR1_UE          (1U << 13)
 
-#define USART2_SR_TXE         (1U << 7)
+/* USART_SR bit definitions */
 #define USART2_SR_RXNE        (1U << 5)
+#define USART2_SR_TXE         (1U << 7)
 /** @} */
 
 /** @name GPIO pin helpers
@@ -330,12 +334,14 @@ typedef struct
 #define ADC1_DR               (*(volatile uint32_t*)(ADC1_BASE + 0x4CU))  ///< Regular data
 #define ADC1_CCR              (*(volatile uint32_t*)(ADC1_BASE + 0x308U)) ///< Common control
 
+/* ADC_SR bit definitions */
 #define ADC_SR_EOC            (1U << 1)
 #define ADC_SR_AWD            (1U << 2)
 #define ADC_SR_JEOC           (1U << 3)
 #define ADC_SR_JSTRT          (1U << 4)
 #define ADC_SR_STRT           (1U << 5)
 
+/* ADC_CR1 bit definitions */
 #define ADC_CR1_AWDCH         (0x1FU << 0)
 #define ADC_CR1_EOCIE         (1U << 5)
 #define ADC_CR1_AWDIE         (1U << 6)
@@ -351,6 +357,7 @@ typedef struct
 #define ADC_CR1_RES           (0x3U << 24)  ///< 00 = 12-bit
 #define ADC_CR1_OVERW         (1U << 26)
 
+/* ADC_CR2 bit definitions */
 #define ADC_CR2_ADON          (1U << 0)
 #define ADC_CR2_CONT          (1U << 1)
 #define ADC_CR2_DMA           (1U << 8)
@@ -364,10 +371,12 @@ typedef struct
 #define ADC_CR2_EXTEN         (0x3U << 28)
 #define ADC_CR2_SWSTART       (1U << 30)
 
+/* ADC_SMPR2 bit definitions */
 #define ADC_SMPR2_SMP0        (0x7U << 0)
 #define ADC_SMPR2_SMP1        (0x7U << 3)   ///< PA1 = ADC1_IN1
 #define ADC_SMPR2_SMP2        (0x7U << 6)
 
+/* ADC sample time values */
 #define ADC_SMP_3CYCLES       0x0U
 #define ADC_SMP_15CYCLES      0x1U
 #define ADC_SMP_28CYCLES      0x2U
@@ -376,8 +385,6 @@ typedef struct
 #define ADC_SMP_112CYCLES     0x5U
 #define ADC_SMP_144CYCLES     0x6U
 #define ADC_SMP_480CYCLES     0x7U
-
-#define RCC_APB2ENR_ADC1EN    (1U << 8)
 /** @} */
 
 /** @name TIM3 — general purpose timer, APB1
@@ -407,19 +414,22 @@ typedef struct
 #define I2C1_CCR              (*(volatile uint32_t*)(I2C1_BASE + 0x1CU))
 #define I2C1_TRISE            (*(volatile uint32_t*)(I2C1_BASE + 0x20U))
 
+/* I2C_CR1 bit definitions */
 #define I2C_CR1_PE            (1U << 0)
 #define I2C_CR1_START         (1U << 8)
 #define I2C_CR1_STOP          (1U << 9)
 #define I2C_CR1_ACK           (1U << 10)
 #define I2C_CR1_SWRST         (1U << 15)
 
+/* I2C_SR1 bit definitions */
 #define I2C_SR1_SB            (1U << 0)   ///< START generated
 #define I2C_SR1_ADDR          (1U << 1)   ///< Address sent/matched; clear by reading SR1 then SR2
+#define I2C1_SR1_BTF          (1U << 2)   ///< Byte Transfer Completed Flag
 #define I2C_SR1_TXE           (1U << 7)   ///< Data register empty
 #define I2C1_SR1_ACK_FAILURE  (1U << 10)  ///< NACK received
-#define I2C1_SR1_BTF          (1U << 2)   ///< Byte Transfer Completed Flag
-#define I2C_SR2_BUSY          (1U << 1)   ///< Bus busy: set from START until STOP
 
+/* I2C_SR2 bit definitions */
+#define I2C1_SR2_BUSY         (1U << 1)   ///< Bus busy: set from START until STOP
 /** @} */
 
 
