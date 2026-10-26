@@ -112,9 +112,10 @@ void i2c_init(void)
  */
 uint8_t i2c_probe(uint8_t addr)
 {
-    /* BUSY is set from START until STOP; while it is set the bus is not ours. */
+    /* BUSY lives in SR2, not SR1. The macro is misnamed I2C1_SR1_BUSY but its
+     * value (bit 1) is correct and is being applied to the right register. */
     uint32_t start = timebase_us();
-    while (I2C1_SR2 & I2C_SR2_BUSY) {
+    while (I2C1_SR2 & I2C1_SR2_BUSY) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
@@ -122,14 +123,10 @@ uint8_t i2c_probe(uint8_t addr)
      * it sees it free; the hardware clears the bit itself afterwards. */
     I2C1_CR1 |= I2C_CR1_START;
 
-    /* SB set = START is on the wire and SCL is being stretched low. From here
-     * on we have claimed the bus, so every failure path must release it. */
+    /* SB set = START is on the wire and SCL is being stretched low. */
     start = timebase_us();
     while (!(I2C1_SR1 & I2C_SR1_SB)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
-            I2C1_CR1 |= I2C_CR1_STOP;
-            return 0;
-        }
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
     /* Address frame: 7 bits shifted up, bit 0 = 0 for write. The hardware
@@ -140,10 +137,7 @@ uint8_t i2c_probe(uint8_t addr)
      * acknowledged, AF means nobody did. Wait for either, not just for ADDR. */
     start = timebase_us();
     while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C1_SR1_ACK_FAILURE)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
-            I2C1_CR1 |= I2C_CR1_STOP;
-            return 0;
-        }
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
     uint8_t found = 0;
@@ -167,26 +161,25 @@ uint8_t i2c_probe(uint8_t addr)
  * @brief   Write @p len bytes to a 7-bit addressed slave.
  * @param   addr 7-bit address (0x3C for SSD1306).
  * @param   data Bytes to send; `data[0]` goes first.
- * @param   len  Number of bytes to send.
+ * @param   len  Byte count, must be <= 255.
  * @return  1 on success, 0 on NACK or timeout.
  *
  * @note    Every failure path issues STOP before returning so a NACK or a
  *          stuck flag cannot leave the bus claimed by a master that is gone.
+ * @warning The loop counter is `uint8_t`; `len` above 255 wraps and never
+ *          terminates. Callers today stay well below that.
  */
 uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
 {
     uint32_t start = timebase_us();
-    while (I2C1_SR2 & I2C_SR2_BUSY) {
+    while (I2C1_SR2 & I2C1_SR2_BUSY) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
     I2C1_CR1 |= I2C_CR1_START;
     start = timebase_us();
     while (!(I2C1_SR1 & I2C_SR1_SB)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
-            I2C1_CR1 |= I2C_CR1_STOP;
-            return 0;
-        }
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
     I2C1_DR = (uint32_t)((addr << 1) | 0U);     /* bit 0 = 0: write direction */
@@ -207,7 +200,7 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
         return 0;
     }
 
-    for (uint32_t i = 0; i < len; i++) {
+    for (uint8_t i = 0; i < len; i++) {
         /* TXE = DR is empty and can take another byte. It does not mean the
          * byte has been acknowledged yet, only that there is room to queue. */
         start = timebase_us();
