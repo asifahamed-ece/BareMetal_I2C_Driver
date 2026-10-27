@@ -72,7 +72,7 @@ void uart_write_char(char c)
 {
     /* TXE means DR has been copied into the shift register, so the next byte
      * can be queued while the current one is still on the wire. */
-    while (!(USART2_SR_TXE & USART2_SR));
+    while (!(USART_SR_TXE & USART2_SR));
 
     USART2_DR = (uint32_t)c;    /* Writing DR clears TXE in hardware. */
 }

@@ -67,6 +67,11 @@
 
 #define PWR_CR                (*(volatile uint32_t*)(PWR_BASE + 0x00U))  ///< VOS is bits 15:14
 #define PWR_CSR               (*(volatile uint32_t*)(PWR_BASE + 0x04U))
+
+/* PWR_CR bit definitions - Voltage scaling */
+#define PWR_CR_VOS_SCALE_1    (0x03U << 14U)    ///< Scale 1, required above 84 MHz
+#define PWR_CR_VOS_SCALE_2    (0x02U << 14U)    ///< Scale 2, up to 84 MHz
+#define PWR_CR_VOS_SCALE_3    (0x01U << 14U)    ///< Scale 3, up to 16 MHz
 /** @} */
 
 /** @name FLASH — embedded flash interface
@@ -81,6 +86,12 @@
 #define FLASH_SR              (*(volatile uint32_t*)(FLASH_BASE + 0x0CU))
 #define FLASH_CR              (*(volatile uint32_t*)(FLASH_BASE + 0x10U))
 #define FLASH_OPTCR           (*(volatile uint32_t*)(FLASH_BASE + 0x14U))
+
+/* FLASH_ACR bit definitions */
+#define FLASH_ACR_LATENCY_3WS (0x03U << 0U)     ///< 3 wait states, 90-100 MHz at 2.7-3.6 V
+#define FLASH_ACR_PRFTEN      (1U << 8U)        ///< Prefetch enable
+#define FLASH_ACR_ICEN        (1U << 9U)        ///< Instruction cache enable
+#define FLASH_ACR_DCEN        (1U << 10U)       ///< Data cache enable
 /** @} */
 
 /** @name DWT — Data Watchpoint and Trace (Core Peripheral)
@@ -93,8 +104,11 @@
 #define CoreDebug_BASE        ((uint32_t)0xE000EDF0U)
 #define CoreDebug_DEMCR       (*(volatile uint32_t*)(CoreDebug_BASE + 0x0CU))
 
-#define TRCENA               (1U << 24U)
-#define CYCCNTENA             (1U << 0U)
+/* CoreDebug_DEMCR bit definitions */
+#define CoreDebug_DEMCR_TRCENA    (1U << 24U)
+
+/* DWT_CTRL bit definitions */
+#define DWT_CTRL_CYCCNTENA        (1U << 0U)
 
 /** @} */
 
@@ -296,8 +310,8 @@ typedef struct
 #define USART_CR1_UE          (1U << 13)
 
 /* USART_SR bit definitions */
-#define USART2_SR_RXNE        (1U << 5)
-#define USART2_SR_TXE         (1U << 7)
+#define USART_SR_RXNE         (1U << 5)
+#define USART_SR_TXE          (1U << 7)
 /** @} */
 
 /** @name GPIO pin helpers
@@ -440,48 +454,40 @@ typedef struct
  *    VCO output / PLLP = SYSCLK
  *    VCO output / PLLQ = 48 MHz domain
  *  @{ */
-#define RCC_APB1ENR_PWREN      (1U << 28U)       ///< PWR clock; needed before writing PWR_CR
-#define VOS_Scale1             (0x03U << 14U)    ///< Scale 1, required above 84 MHz
-#define VOS_Scale2             (0x02U << 14U)    ///< Scale 2, up to 84 MHz
-#define VOS_Scale3             (0x01U << 14U)    ///< Scale 3, up to 16 MHz
+/* RCC_CR bit definitions */
+#define RCC_CR_PLLON          (1U << 24U)       ///< PLL enable
+#define RCC_CR_PLLRDY         (1U << 25U)       ///< Set once the PLL has locked
 
-#define FLASH_LATENCY_3WAITS   (0x03U << 0U)     ///< 3 wait states, 90-100 MHz at 2.7-3.6 V
-#define FLASH_PRFTEN           (1U << 8U)        ///< Prefetch
-#define FLASH_ICEN             (1U << 9U)        ///< Instruction cache
-#define FLASH_DCEN             (1U << 10U)       ///< Data cache
+/* RCC_PLLCFGR bit definitions */
+#define RCC_PLLCFGR_PLLSRC_HSI (0x00U << 22U)   ///< PLL input = HSI
+#define RCC_PLLCFGR_PLLSRC_HSE (0x01U << 22U)   ///< PLL input = HSE
 
-#define RCC_PLLSRC_HSE         (0x01U << 22U)    ///< PLL input = HSE
-#define RCC_PLLSRC_HSI         (0x00U << 22U)    ///< PLL input = HSI
-
-#define RCC_PLLCFGR_PLLM_Pos   0U                ///< Bits 5:0, VCO input divider
+#define RCC_PLLCFGR_PLLM_Pos   0U               ///< Bits 5:0, VCO input divider
 #define RCC_PLLCFGR_PLLM_Msk   (0x3FU << RCC_PLLCFGR_PLLM_Pos)
 
-#define RCC_PLLCFGR_PLLN_Pos   6U                ///< Bits 14:6, VCO multiplier
+#define RCC_PLLCFGR_PLLN_Pos   6U               ///< Bits 14:6, VCO multiplier
 #define RCC_PLLCFGR_PLLN_Msk   (0x1FFU << RCC_PLLCFGR_PLLN_Pos)
 
-#define RCC_PLLCFGR_PLLP_Pos   16U               ///< Bits 17:16, 00 = /2, 01 = /4, 10 = /6, 11 = /8
+#define RCC_PLLCFGR_PLLP_Pos   16U              ///< Bits 17:16, 00 = /2, 01 = /4, 10 = /6, 11 = /8
 #define RCC_PLLCFGR_PLLP_Msk   (0x3U << RCC_PLLCFGR_PLLP_Pos)
 
-#define RCC_PLLCFGR_PLLSRC_Pos 22U               ///< 0 = HSI, 1 = HSE
+#define RCC_PLLCFGR_PLLSRC_Pos 22U              ///< 0 = HSI, 1 = HSE
 #define RCC_PLLCFGR_PLLSRC_Msk (0x1U << RCC_PLLCFGR_PLLSRC_Pos)
 
-#define RCC_PLLCFGR_PLLQ_Pos   24U               ///< Bits 27:24, 48 MHz domain divider
+#define RCC_PLLCFGR_PLLQ_Pos   24U              ///< Bits 27:24, 48 MHz domain divider
 #define RCC_PLLCFGR_PLLQ_Msk   (0xFU << RCC_PLLCFGR_PLLQ_Pos)
 
-#define RCC_CR_PLL_ON          (1U << 24U)       ///< PLL enable
-#define RCC_CR_PLL_RDY         (1U << 25U)       ///< Set once the PLL has locked
+/* RCC_CFGR bit definitions - System clock switch */
+#define RCC_CFGR_SW_HSI        (0x00U << 0U)    ///< SW = HSI
+#define RCC_CFGR_SW_HSE        (0x01U << 0U)    ///< SW = HSE
+#define RCC_CFGR_SW_PLL        (0x02U << 0U)    ///< SW = PLL
 
-#define RCC_CFGR_HSI_SYSCLK    (0x00U << 0U)     ///< SW = HSI
-#define RCC_CFGR_HSE_SYSCLE    (0x01U << 0U)     ///< SW = HSE. @bug name typo, should be HSE_SYSCLK
-
-/** @brief SW = PLL.
- *  @bug Value is 0x10, but SW is bits 1:0 — 0x10 sets HPRE bit 4 as well and
- *       would silently halve AHB. Should be (0x02U << 0U). */
-#define RCC_CFGR_PLL_SYSCLK    (0x10U << 0U)
-
-/** @brief Mask for the SWS field. @bug SWS is bits 3:2; only bit 2 is
- *         covered here. Should be (0x3U << 2U). */
-#define RCC_CLK_SWS            (1U << 2U)
+/* RCC_CFGR bit definitions - System clock switch status */
+#define RCC_CFGR_SWS_Pos       2U               ///< Bits 3:2
+#define RCC_CFGR_SWS_Msk       (0x3U << RCC_CFGR_SWS_Pos)
+#define RCC_CFGR_SWS_HSI       (0x00U << 2U)    ///< SWS = HSI
+#define RCC_CFGR_SWS_HSE       (0x01U << 2U)    ///< SWS = HSE
+#define RCC_CFGR_SWS_PLL       (0x02U << 2U)    ///< SWS = PLL
 /** @} */
 
 

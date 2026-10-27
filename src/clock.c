@@ -40,23 +40,23 @@ void clock_init_100Mhz()
 {   
     RCC_APB1ENR |= RCC_APB1ENR_PWREN;   /* PWR registers are dead without this */
     
-    PWR_CR &= ~(VOS_Scale1);
-    PWR_CR |= VOS_Scale1;  /* VOS = 0b11, scale 1 for SYSCLK <= 100 MHz */
+    PWR_CR &= ~(PWR_CR_VOS_SCALE_1);
+    PWR_CR |= PWR_CR_VOS_SCALE_1;  /* VOS = 0b11, scale 1 for SYSCLK <= 100 MHz */
 
-    FLASH_ACR |= FLASH_LATENCY_3WAITS;    /* 3 wait states at 100 MHz, 2.7-3.6 V */
-    FLASH_ACR |= (FLASH_PRFTEN | FLASH_ICEN | FLASH_DCEN);
+    FLASH_ACR |= FLASH_ACR_LATENCY_3WS;    /* 3 wait states at 100 MHz, 2.7-3.6 V */
+    FLASH_ACR |= (FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN);
 
     /* Whole-register write. PLLSRC = 0 keeps HSI as the PLL input. */
-    RCC_PLLCFGR = ( (PLLM  << RCC_PLLCFGR_PLLM_Pos)  | 
-                    (PLLN << RCC_PLLCFGR_PLLN_Pos)   | 
-                    (PLLP  << RCC_PLLCFGR_PLLP_Pos)  | 
+    RCC_PLLCFGR = ( (PLLM  << RCC_PLLCFGR_PLLM_Pos)  |
+                    (PLLN << RCC_PLLCFGR_PLLN_Pos)   |
+                    (PLLP  << RCC_PLLCFGR_PLLP_Pos)  |
                     (PLLQ  << RCC_PLLCFGR_PLLQ_Pos)  |
-                    (RCC_PLLSRC_HSI)  );
-    
+                    (RCC_PLLCFGR_PLLSRC_HSI)  );
+
     /* PLL on, then wait for lock. */
-    RCC_CR |= RCC_CR_PLL_ON;
-    
-    while( !(RCC_CR & RCC_CR_PLL_RDY));
+    RCC_CR |= RCC_CR_PLLON;
+
+    while( !(RCC_CR & RCC_CR_PLLRDY));
 
     /* Prescalers: HPRE /1, PPRE1 /2, PPRE2 /1, SW = PLL. */
     RCC_CFGR &= ~( (0xFU << 4U ) |

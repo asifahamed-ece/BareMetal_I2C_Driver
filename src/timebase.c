@@ -19,13 +19,13 @@
  * @brief   Enable the trace/debug blocks and start the cycle counter.
  *
  * @note    Two separate enables are required and both are easy to forget:
- *          TRCENA gates the whole DWT block, CYCCNTENA gates the counter
- *          inside it. Set only CYCCNTENA and it never increments.
+ *          CoreDebug_DEMCR_TRCENA gates the whole DWT block, DWT_CTRL_CYCCNTENA
+ *          gates the counter inside it. Set only CYCCNTENA and it never increments.
  */
 void timebase_init(void)
 {
-    CoreDebug_DEMCR |= TRCENA;      /* DEMCR bit 24: power on the DWT block. */
-    DWT_CTRL |= CYCCNTENA;          /* DWT_CTRL bit 0: start counting HCLK. */
+    CoreDebug_DEMCR |= CoreDebug_DEMCR_TRCENA;      /* DEMCR bit 24: power on the DWT block. */
+    DWT_CTRL |= DWT_CTRL_CYCCNTENA;                 /* DWT_CTRL bit 0: start counting HCLK. */
 }
 
 /**
