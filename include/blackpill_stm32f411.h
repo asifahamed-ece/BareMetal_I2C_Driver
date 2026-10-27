@@ -424,12 +424,12 @@ typedef struct
 /* I2C_SR1 bit definitions */
 #define I2C_SR1_SB            (1U << 0)   ///< START generated
 #define I2C_SR1_ADDR          (1U << 1)   ///< Address sent/matched; clear by reading SR1 then SR2
-#define I2C1_SR1_BTF          (1U << 2)   ///< Byte Transfer Completed Flag
+#define I2C_SR1_BTF           (1U << 2)   ///< Byte Transfer Completed Flag
 #define I2C_SR1_TXE           (1U << 7)   ///< Data register empty
-#define I2C1_SR1_ACK_FAILURE  (1U << 10)  ///< NACK received
+#define I2C_SR1_ACK_FAILURE   (1U << 10)  ///< NACK received
 
 /* I2C_SR2 bit definitions */
-#define I2C1_SR2_BUSY         (1U << 1)   ///< Bus busy: set from START until STOP
+#define I2C_SR2_BUSY          (1U << 1)   ///< Bus busy: set from START until STOP
 /** @} */
 
 

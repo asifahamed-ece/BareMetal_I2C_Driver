@@ -30,7 +30,7 @@
 void uart2_init(void)
 {
     RCC_AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-    RCC_APB1ENR |= RCC_USART2EN;
+    RCC_APB1ENR |= RCC_APB1ENR_USART2EN;
 
     /* MODER: 0b10 = alternate function. The peripheral drives the pin, not
      * the GPIO output register. */
@@ -61,7 +61,7 @@ void uart2_init(void)
     USART2_BRR = brr_value;
 
     /* UE last: the peripheral latches its configuration on enable. */
-    USART2_CR1 |= (USART_CR1_UE | USART2_CR1_TE | USART2_CR1_RE);
+    USART2_CR1 |= (USART_CR1_UE | USART_CR1_TE | USART_CR1_RE);
 }
 
 /**

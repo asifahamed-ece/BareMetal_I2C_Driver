@@ -112,10 +112,9 @@ void i2c_init(void)
  */
 uint8_t i2c_probe(uint8_t addr)
 {
-    /* BUSY lives in SR2, not SR1. The macro is misnamed I2C1_SR1_BUSY but its
-     * value (bit 1) is correct and is being applied to the right register. */
+    /* BUSY lives in SR2, not SR1. */
     uint32_t start = timebase_us();
-    while (I2C1_SR2 & I2C1_SR2_BUSY) {
+    while (I2C1_SR2 & I2C_SR2_BUSY) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
@@ -126,7 +125,10 @@ uint8_t i2c_probe(uint8_t addr)
     /* SB set = START is on the wire and SCL is being stretched low. */
     start = timebase_us();
     while (!(I2C1_SR1 & I2C_SR1_SB)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
     }
 
     /* Address frame: 7 bits shifted up, bit 0 = 0 for write. The hardware
@@ -136,8 +138,11 @@ uint8_t i2c_probe(uint8_t addr)
     /* Two possible outcomes, and both are answers: ADDR means someone
      * acknowledged, AF means nobody did. Wait for either, not just for ADDR. */
     start = timebase_us();
-    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C1_SR1_ACK_FAILURE)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
+    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
     }
 
     uint8_t found = 0;
@@ -149,7 +154,7 @@ uint8_t i2c_probe(uint8_t addr)
         (void)I2C1_SR2;
     } else {
         /* AF is cleared by writing 0 to it, which is what this mask does. */
-        I2C1_SR1 &= ~I2C1_SR1_ACK_FAILURE;
+        I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
     }
 
     I2C1_CR1 |= I2C_CR1_STOP;
@@ -166,26 +171,27 @@ uint8_t i2c_probe(uint8_t addr)
  *
  * @note    Every failure path issues STOP before returning so a NACK or a
  *          stuck flag cannot leave the bus claimed by a master that is gone.
- * @warning The loop counter is `uint8_t`; `len` above 255 wraps and never
- *          terminates. Callers today stay well below that.
  */
-uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
+uint8_t i2c_write(uint8_t addr, uint8_t *data, uint8_t len)
 {
     uint32_t start = timebase_us();
-    while (I2C1_SR2 & I2C1_SR2_BUSY) {
+    while (I2C1_SR2 & I2C_SR2_BUSY) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
     I2C1_CR1 |= I2C_CR1_START;
     start = timebase_us();
     while (!(I2C1_SR1 & I2C_SR1_SB)) {
-        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
     }
 
     I2C1_DR = (uint32_t)((addr << 1) | 0U);     /* bit 0 = 0: write direction */
 
     start = timebase_us();
-    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C1_SR1_ACK_FAILURE)) {
+    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) {
             I2C1_CR1 |= I2C_CR1_STOP;           /* Release the bus before bailing out. */
             return 0;
@@ -195,7 +201,7 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
     if (I2C1_SR1 & I2C_SR1_ADDR) {
         (void)I2C1_SR2;     /* SR1-then-SR2 read: required to clear ADDR. */
     } else {
-        I2C1_SR1 &= ~I2C1_SR1_ACK_FAILURE;
+        I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
         I2C1_CR1 |= I2C_CR1_STOP;
         return 0;
     }
@@ -220,7 +226,7 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
      * mid-frame — a classic "the last OLED column looks wrong" bug.
      */
     start = timebase_us();
-    while (!(I2C1_SR1 & I2C1_SR1_BTF)) {
+    while (!(I2C1_SR1 & I2C_SR1_BTF)) {
         if ((timebase_us() - start) > I2C_TIMEOUT_US) {
             I2C1_CR1 |= I2C_CR1_STOP;
             return 0;
