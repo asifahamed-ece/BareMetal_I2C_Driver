@@ -247,6 +247,6 @@ Final Year - Electronics & Communication Engineering
 
 Rajalakshmi Engineering College, Chennai
 
-🔗 LinkedIn: [asif-ahamed-s-ece](linkedin.com/in/asif-ahamed-s-ece)
+🔗 LinkedIn: [asif-ahamed-s-ece](https://linkedin.com/in/asif-ahamed-s-ece)
 
 📧 Email: asifahamed670@gmail.com
