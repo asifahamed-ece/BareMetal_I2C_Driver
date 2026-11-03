@@ -440,6 +440,7 @@ typedef struct
 #define I2C_SR1_ADDR          (1U << 1)   ///< Address sent/matched; clear by reading SR1 then SR2
 #define I2C_SR1_BTF           (1U << 2)   ///< Byte Transfer Completed Flag
 #define I2C_SR1_TXE           (1U << 7)   ///< Data register empty
+#define I2C_SR1_RXNE          (1U << 6)   ///< Receive Data Register Not Empty
 #define I2C_SR1_ACK_FAILURE   (1U << 10)  ///< NACK received
 
 /* I2C_SR2 bit definitions */
