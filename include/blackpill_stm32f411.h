@@ -433,6 +433,7 @@ typedef struct
 #define I2C_CR1_START         (1U << 8)
 #define I2C_CR1_STOP          (1U << 9)
 #define I2C_CR1_ACK           (1U << 10)
+#define I2C_CR1_POS           (1U << 11)   ///< ACK/POS bit for 2-byte reception
 #define I2C_CR1_SWRST         (1U << 15)
 
 /* I2C_SR1 bit definitions */
