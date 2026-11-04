@@ -80,6 +80,17 @@ int main(void) {
     SSD1306_Init();         // Send the init sequence (from your ssd1306.c)
     uart_print("OLED Initialized\r\n");
 
+    uint8_t who_am_i = 0;
+
+    // MPU6050 is at 0x68, WHO_AM_I register is 0x75
+    if (i2c_read(0x68, 0x75, &who_am_i, 1)) {
+        uart_print("MPU6050 WHO_AM_I: 0x");
+        print_hex(who_am_i);
+        uart_print("\r\n");
+    } else {
+        uart_print("Failed to read from MPU6050\r\n");
+    }
+
     while (1) {
         // --- STATE 1: EVERYTHING ON ---
         led_set(true);                      // LED ON

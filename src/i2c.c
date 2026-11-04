@@ -237,106 +237,174 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
     return 1;
 }
 
-uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len){
+/**
+ * @brief   Read @p len bytes from register @p reg on a 7-bit addressed slave.
+ * @param   addr 7-bit address (MPU6050 answers at 0x68).
+ * @param   reg  Register address to read from.
+ * @param   data Buffer to store received bytes.
+ * @param   len  Number of bytes to read (1, 2, or more).
+ * @return  1 on success, 0 on NACK or timeout.
+ *
+ * @note    Implements the combined write-read sequence with repeated START:
+ *          START → ADDR+W → REG → Sr → ADDR+R → DATA[0..N-1] → STOP
+ *          ACK bit timing follows RM0383 §18.3.4 exactly, which differs
+ *          for 1-byte, 2-byte, and N-byte reads.
+ */
+uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
+{
+    if (len == 0) return 0;
 
-    uint32_t start = timebase_us();      // Check Bus is Busy
-    while(I2C1_SR2 & I2C_SR2_BUSY){
-        if( timebase_us() - start > I2C_TIMEOUT_US) return 0;
-    }
-    // Start I2C Clock and Check if Start Bit Set
-   I2C1_CR1 |= I2C_CR1_START; 
-
-    start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_SB)){
-        if(timebase_us() - start > I2C_TIMEOUT_US){
-            I2C1_CR1 |= I2C_CR1_STOP;
-            return 0;
-        }
-    }
-    // Send Address and Mode to Slave
-    I2C1_DR = (addr << 1) | 0;
-
-    start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)){
-        if(timebase_us() - start > I2C_TIMEOUT_US){
-            I2C1_CR1 |= I2C_CR1_STOP;   return 0;
-        }
+    uint32_t start = timebase_us();
+    while (I2C1_SR2 & I2C_SR2_BUSY) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) return 0;
     }
 
-    // Clear ADDR bit by Reads
-    if (I2C1_SR1 & I2C_SR1_ADDR) {
-        (void)I2C1_SR2;     /* SR1-then-SR2 read: required to clear ADDR. */
-    } else {
-        I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
-        I2C1_CR1 |= I2C_CR1_STOP;
-        return 0;
-    }
-
-    I2C1_DR = reg;  // Writing Register Address
-
-    start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_TXE)){       // Wait for TXE flag
-        if(timebase_us() - start > I2C_TIMEOUT_US){
-            I2C1_CR1 |= I2C_CR1_STOP;   return 0;
-        }
-    }
-
-    // Wait for Byte transfer Finish
-    start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_BTF)){
-        if(timebase_us() - start > I2C_TIMEOUT_US){
-            I2C1_CR1 |= I2C_CR1_STOP;   return 0;
-        }
-    }
-
-    // Set the Repeated Start
+    /* ===== Phase 1: Write the register address ===== */
     I2C1_CR1 |= I2C_CR1_START;
     start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_SB)){
-        if(timebase_us() - start > I2C_TIMEOUT_US){
+    while (!(I2C1_SR1 & I2C_SR1_SB)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
             I2C1_CR1 |= I2C_CR1_STOP;
             return 0;
         }
     }
 
-    // Send the Read Command with Address
-    I2C1_DR = (addr << 1) | 1;  // read = 1
+    I2C1_DR = (uint32_t)((addr << 1) | 0U);  /* Write direction */
 
     start = timebase_us();
-    while(!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)){
-        if(timebase_us() - start > I2C_TIMEOUT_US){
-            I2C1_CR1 |= I2C_CR1_STOP;   return 0;
+    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
         }
     }
 
-    // Clear ADDR bit by Reads
     if (I2C1_SR1 & I2C_SR1_ADDR) {
-        (void)I2C1_SR2;     /* SR1-then-SR2 read: required to clear ADDR. */
+        (void)I2C1_SR2;  /* Clear ADDR by reading SR1 then SR2 */
     } else {
         I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
         I2C1_CR1 |= I2C_CR1_STOP;
         return 0;
     }
 
-    // Read the Incoming Bytes
-    for(uint32_t i = 0; i < len; i++){
-        if(i == len - 1){
-            I2C1_CR1 &= ~I2C_CR1_ACK;   // Sending a NACK {Stop incoming}
+    /* Send the register address */
+    I2C1_DR = (uint32_t)reg;
+
+    /* Wait for TXE: the register byte is in the shift register */
+    start = timebase_us();
+    while (!(I2C1_SR1 & I2C_SR1_TXE)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
         }
-        else{
-            I2C1_CR1 |= I2C_CR1_ACK;   // Ensure ACK is sent and Asking More data
-        }
-        
-        start = timebase_us();
-        while(!(I2C1_SR1 & I2C_SR1_RXNE)){
-            if(timebase_us() - start > I2C_TIMEOUT_US){
-                I2C1_CR1 |= I2C_CR1_STOP;   return 0;
-            }
-        }
-        data[i] = I2C1_DR;  // Store current Byte in the Data variable
     }
 
-    I2C1_CR1 |= I2C_CR1_STOP;
+    /* Wait for BTF: the register byte has been acknowledged and the shift
+     * register is empty — safe to issue repeated START without truncating. */
+    start = timebase_us();
+    while (!(I2C1_SR1 & I2C_SR1_BTF)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
+    }
+
+    /* ===== Phase 2: Repeated START and read direction ===== */
+    I2C1_CR1 |= I2C_CR1_START;
+    start = timebase_us();
+    while (!(I2C1_SR1 & I2C_SR1_SB)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
+    }
+
+    I2C1_DR = (uint32_t)((addr << 1) | 1U);  /* Read direction */
+
+    start = timebase_us();
+    while (!(I2C1_SR1 & I2C_SR1_ADDR) && !(I2C1_SR1 & I2C_SR1_ACK_FAILURE)) {
+        if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
+    }
+
+    if (!(I2C1_SR1 & I2C_SR1_ADDR)) {
+        I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
+        I2C1_CR1 |= I2C_CR1_STOP;
+        return 0;
+    }
+
+    /* ===== Phase 3: Read bytes — ACK bit timing per RM0383 §18.3.4 ===== */
+    if (len == 1) {
+        /* Single-byte read: clear ACK, clear ADDR, then STOP before reading.
+         * This is the EV6_1 condition in RM0383 Figure 149. */
+        I2C1_CR1 &= ~I2C_CR1_ACK;       /* Disable ACK */
+        (void)I2C1_SR2;                 /* Clear ADDR */
+        I2C1_CR1 |= I2C_CR1_STOP;       /* Program STOP immediately */
+
+        start = timebase_us();
+        while (!(I2C1_SR1 & I2C_SR1_RXNE)) {
+            if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+                return 0;
+            }
+        }
+        data[0] = (uint8_t)I2C1_DR;
+        I2C1_CR1 |= I2C_CR1_ACK;        /* Restore ACK for next transaction */
+
+    } else if (len == 2) {
+        /* Two-byte read: uses POS bit and special ACK timing (RM0383 §18.3.4). */
+        I2C1_CR1 |= I2C_CR1_POS;        /* Next ACK applies to the next byte */
+        (void)I2C1_SR2;                 /* Clear ADDR */
+        I2C1_CR1 &= ~I2C_CR1_ACK;       /* Disable ACK after next byte */
+
+        start = timebase_us();
+        while (!(I2C1_SR1 & I2C_SR1_BTF)) {
+            if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+                I2C1_CR1 |= I2C_CR1_STOP;
+                I2C1_CR1 &= ~I2C_CR1_POS;
+                return 0;
+            }
+        }
+        I2C1_CR1 |= I2C_CR1_STOP;
+        data[0] = (uint8_t)I2C1_DR;
+        data[1] = (uint8_t)I2C1_DR;
+        I2C1_CR1 &= ~I2C_CR1_POS;
+        I2C1_CR1 |= I2C_CR1_ACK;        /* Restore ACK */
+
+    } else {
+        /* Multi-byte read (N > 2): ACK each byte except the last two. */
+        (void)I2C1_SR2;                 /* Clear ADDR */
+
+        for (uint32_t i = 0; i < len; i++) {
+            if (i == len - 2) {
+                /* Wait for second-to-last byte in shift register, then clear ACK
+                 * so the last byte gets NACK. */
+                start = timebase_us();
+                while (!(I2C1_SR1 & I2C_SR1_BTF)) {
+                    if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+                        I2C1_CR1 |= I2C_CR1_STOP;
+                        return 0;
+                    }
+                }
+                I2C1_CR1 &= ~I2C_CR1_ACK;
+            }
+
+            start = timebase_us();
+            while (!(I2C1_SR1 & I2C_SR1_RXNE)) {
+                if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+                    I2C1_CR1 |= I2C_CR1_STOP;
+                    return 0;
+                }
+            }
+            data[i] = (uint8_t)I2C1_DR;
+
+            if (i == len - 1) {
+                I2C1_CR1 |= I2C_CR1_STOP;
+            }
+        }
+        I2C1_CR1 |= I2C_CR1_ACK;        /* Restore ACK for next transaction */
+    }
 
     return 1;
 }
