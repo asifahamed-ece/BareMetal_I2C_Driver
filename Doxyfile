@@ -1,0 +1,64 @@
+# Doxygen configuration — BareMetal I2C Driver
+#
+# Generate with:  doxygen Doxyfile
+# Output:         docs/api/html/index.html
+#
+# Scope is the driver itself: the register header, the modules, and README.md
+# as the landing page. examples/ is intentionally excluded — it is a legacy
+# reference sketch that is not part of the Makefile build.
+
+PROJECT_NAME           = "BareMetal I2C Driver"
+PROJECT_BRIEF          = "STM32F411CEU6 - register-level I2C1 master, no HAL"
+PROJECT_NUMBER         = "1.0"
+OUTPUT_DIRECTORY       = docs/api
+OUTPUT_LANGUAGE        = English
+
+# C, not C++: this changes which constructs Doxygen treats as OO.
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# Document what is documented. Undocumented internals are skipped rather than
+# emitted as empty pages, so WARN_IF_UNDOCUMENTED below only fires for real
+# gaps in an existing block (a missing @param, an unknown tag).
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = NO
+
+INPUT                  = include \
+                         src \
+                         README.md
+FILE_PATTERNS          = *.c *.h *.md
+RECURSIVE              = NO
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# Source browser: cross-referenced, clickable source. Inline bodies are left
+# out so the header files stay readable.
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+SEARCHENGINE           = YES
+GENERATE_LATEX         = NO
+
+# dot is installed; graphs are worth having here because the call relationships
+# between the I2C primitives are the point.
+HAVE_DOT               = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+DOT_CLEANUP            = YES
+
+QUIET                  = NO
+WARNINGS               = YES
+# The register-map header is a wall of ~200 address and bit-field macros whose
+# names are the documentation (RCC_AHB1ENR_GPIOBEN, I2C_SR1_TXE, ...). Demanding
+# prose for each would bury the real signal, so undocumented members are not
+# reported. Doc *errors* are still reported, which is what catches a duplicated
+# @param or an unknown tag.
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = NO

@@ -42,3 +42,6 @@ desktop.ini
 *.tmp
 *.html
 *EXPLAINED.md
+
+# Generated API documentation - regenerate with: doxygen Doxyfile
+docs/api/
