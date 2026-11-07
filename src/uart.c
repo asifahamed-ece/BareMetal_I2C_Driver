@@ -21,8 +21,6 @@
 #define TARGET_BAUD   115200U       ///< Must match the receiver exactly
 
 /**
- * @brief   Route PA2/PA3 to USART2 and start it at @ref TARGET_BAUD.
- *
  * @note    Must run after clock_init_100Mhz(): @ref PCLK1_FREQ is a constant,
  *          not a measurement, so if APB1 ever changes this silently becomes
  *          wrong and the baud drifts with it.
@@ -64,10 +62,6 @@ void uart2_init(void)
     USART2_CR1 |= (USART_CR1_UE | USART_CR1_TE | USART_CR1_RE);
 }
 
-/**
- * @brief   Send one byte, blocking until the transmit register is free.
- * @param   c Byte to send.
- */
 void uart_write_char(char c)
 {
     /* TXE means DR has been copied into the shift register, so the next byte
@@ -77,10 +71,6 @@ void uart_write_char(char c)
     USART2_DR = (uint32_t)c;    /* Writing DR clears TXE in hardware. */
 }
 
-/**
- * @brief   Send a NUL-terminated string.
- * @param   str String to send; must not be NULL.
- */
 void uart_print(const char *str)
 {
     while (*str != '\0') {

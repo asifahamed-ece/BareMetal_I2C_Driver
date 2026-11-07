@@ -13,18 +13,16 @@
  *   VCO out / PLLP        = 100 MHz SYSCLK     (PLLP = 0b00 means P = 2)
  *   VCO out / PLLQ 4      = 50 MHz             (48 MHz domain, unused here)
  */
-#define PLLM 16U
-#define PLLN 200U
-#define PLLP 0U   ///< 0b00 => P = 2
-#define PLLQ 4U
+#define PLLM 16U  ///< HSI 16 MHz / 16 = 1 MHz VCO input (allowed: 1-2 MHz)
+#define PLLN 200U ///< 1 MHz x 200 = 200 MHz VCO output (allowed: 100-432 MHz)
+#define PLLP 0U   ///< 0b00 => P = 2, so 200 MHz / 2 = 100 MHz SYSCLK
+#define PLLQ 4U   ///< 200 MHz / 4 = 50 MHz, the 48 MHz domain. Unused here.
 
 uint32_t clock_get_pclk1_hz(void) {
     return 50000000;
 }
 
 /**
- * @brief Switch SYSCLK from HSI 16 MHz to the PLL at 100 MHz.
- *
  * Order matters. Regulator voltage and flash wait states belong to the
  * *faster* clock, so both are raised while the core is still slow. Only then
  * is SW moved to the PLL.

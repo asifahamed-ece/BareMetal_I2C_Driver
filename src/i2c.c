@@ -23,11 +23,11 @@
 #define I2C_SPEED_HZ   100000U      ///< Standard mode ceiling is 100 kHz
 
 /**
- * @brief   Configure PB6/PB7 and bring I2C1 up as a 100 kHz master.
- *
  * @note    Order matters: the peripheral must be disabled (PE = 0) before any
  *          timing register is touched, and enabled (PE = 1) only once every
- *          other bit is in place.
+ *          other bit is in place. The API contract lives in i2c.h; this block
+ *          only carries implementation notes, so Doxygen merges the two
+ *          without duplicating @p params.
  */
 void i2c_init(void)
 {
@@ -103,10 +103,6 @@ void i2c_init(void)
 }
 
 /**
- * @brief   Probe one 7-bit address by attempting START, address, STOP.
- * @param   addr 7-bit address, 0x08..0x77.
- * @return  1 if the address was acknowledged, 0 otherwise.
- *
  * @note    There is no "is there a device?" register — probing is the only
  *          honest way to ask. Each probe costs one full transaction.
  */
@@ -163,12 +159,6 @@ uint8_t i2c_probe(uint8_t addr)
 }
 
 /**
- * @brief   Write @p len bytes to a 7-bit addressed slave.
- * @param   addr 7-bit address (0x3C for SSD1306).
- * @param   data Bytes to send; `data[0]` goes first.
- * @param   len  Byte count, must be <= 255.
- * @return  1 on success, 0 on NACK or timeout.
- *
  * @note    Every failure path issues STOP before returning so a NACK or a
  *          stuck flag cannot leave the bus claimed by a master that is gone.
  */
@@ -206,11 +196,17 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
         return 0;
     }
 
-    for (uint8_t i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         /* TXE = DR is empty and can take another byte. It does not mean the
          * byte has been acknowledged yet, only that there is room to queue. */
         start = timebase_us();
-        while (!(I2C1_SR1 & I2C_SR1_TXE)) {
+        for (;;) {
+            if (I2C1_SR1 & I2C_SR1_ACK_FAILURE) {
+                I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
+                I2C1_CR1 |= I2C_CR1_STOP;
+                return 0;
+            }
+            if (I2C1_SR1 & I2C_SR1_TXE) break;
             if ((timebase_us() - start) > I2C_TIMEOUT_US) {
                 I2C1_CR1 |= I2C_CR1_STOP;
                 return 0;
@@ -226,7 +222,13 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
      * mid-frame — a classic "the last OLED column looks wrong" bug.
      */
     start = timebase_us();
-    while (!(I2C1_SR1 & I2C_SR1_BTF)) {
+    for (;;) {
+        if (I2C1_SR1 & I2C_SR1_ACK_FAILURE) {
+            I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
+        if (I2C1_SR1 & I2C_SR1_BTF) break;
         if ((timebase_us() - start) > I2C_TIMEOUT_US) {
             I2C1_CR1 |= I2C_CR1_STOP;
             return 0;
@@ -238,17 +240,16 @@ uint8_t i2c_write(uint8_t addr, uint8_t *data, uint32_t len)
 }
 
 /**
- * @brief   Read @p len bytes from register @p reg on a 7-bit addressed slave.
- * @param   addr 7-bit address (MPU6050 answers at 0x68).
- * @param   reg  Register address to read from.
- * @param   data Buffer to store received bytes.
- * @param   len  Number of bytes to read (1, 2, or more).
- * @return  1 on success, 0 on NACK or timeout.
+ * @note    Three ACK regimes, one per length, because the master has to decide
+ *          whether to acknowledge *before* the byte it is acknowledging has
+ *          arrived. The `len == 1` path cannot be reasoned about
+ *          incrementally: ACK, ADDR-clear and STOP are all programmed before
+ *          the byte is read back.
  *
- * @note    Implements the combined write-read sequence with repeated START:
- *          START → ADDR+W → REG → Sr → ADDR+R → DATA[0..N-1] → STOP
- *          ACK bit timing follows RM0383 §18.3.4 exactly, which differs
- *          for 1-byte, 2-byte, and N-byte reads.
+ * @note    ACK is re-enabled on every exit path, timeouts included. Leaving it
+ *          clear is a silent fault: the next read would NACK the first byte it
+ *          receives and still return 1, so the corruption would surface far
+ *          from the transaction that caused it.
  */
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
 {
@@ -300,9 +301,17 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
     }
 
     /* Wait for BTF: the register byte has been acknowledged and the shift
-     * register is empty — safe to issue repeated START without truncating. */
+     * register is empty — safe to issue repeated START without truncating.
+     * AF is polled too: a slave that ACKed the address can still NACK the
+     * register byte, and then BTF never becomes the right thing to wait for. */
     start = timebase_us();
-    while (!(I2C1_SR1 & I2C_SR1_BTF)) {
+    for (;;) {
+        if (I2C1_SR1 & I2C_SR1_ACK_FAILURE) {
+            I2C1_SR1 &= ~I2C_SR1_ACK_FAILURE;
+            I2C1_CR1 |= I2C_CR1_STOP;
+            return 0;
+        }
+        if (I2C1_SR1 & I2C_SR1_BTF) break;
         if ((timebase_us() - start) > I2C_TIMEOUT_US) {
             I2C1_CR1 |= I2C_CR1_STOP;
             return 0;
@@ -346,6 +355,7 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
         start = timebase_us();
         while (!(I2C1_SR1 & I2C_SR1_RXNE)) {
             if ((timebase_us() - start) > I2C_TIMEOUT_US) {
+                I2C1_CR1 |= I2C_CR1_ACK;    /* STOP is already armed; put ACK back. */
                 return 0;
             }
         }
@@ -363,6 +373,7 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
             if ((timebase_us() - start) > I2C_TIMEOUT_US) {
                 I2C1_CR1 |= I2C_CR1_STOP;
                 I2C1_CR1 &= ~I2C_CR1_POS;
+                I2C1_CR1 |= I2C_CR1_ACK;    /* Never leave ACK disabled. */
                 return 0;
             }
         }
@@ -394,6 +405,7 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
             while (!(I2C1_SR1 & I2C_SR1_RXNE)) {
                 if ((timebase_us() - start) > I2C_TIMEOUT_US) {
                     I2C1_CR1 |= I2C_CR1_STOP;
+                    I2C1_CR1 |= I2C_CR1_ACK;    /* Never leave ACK disabled. */
                     return 0;
                 }
             }
@@ -409,17 +421,37 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
     return 1;
 }
 
-void i2c_bus_recover(void){
-    // 1. Disable the peripheral and Switch to reset modes of Pins
+/**
+ * @note    Why nine: one byte is eight clock pulses plus one acknowledge slot,
+ *          so nine is the most a slave can still be waiting for before it must
+ *          abandon the frame and let go of SDA.
+ *
+ * @note    This bit-bangs the pins as plain GPIO because the I2C peripheral is
+ *          precisely what cannot be trusted while the bus is wedged. That means
+ *          PE must be cleared and MODER repointed at the GPIO output driver
+ *          before any BSRR write can have an effect.
+ *
+ * @note    Order is deliberate at both ends. Both lines are released before the
+ *          mode change, because ODR latches even in AF mode and switching to
+ *          output while ODR = 0 would drive both lines low for an instant. SCL
+ *          is dropped before SDA in the closing STOP, so neither SDA edge falls
+ *          inside an SCL-high window and neither can be read as a START.
+ */
+uint8_t i2c_bus_recover(void){
+    /* 1. Disable the peripheral and hand the pins to the GPIO block. */
     I2C1_CR1 &= ~I2C_CR1_PE;
-    
-    GPIOB_MODER &= ~(GPIO_PIN_MODE_SHIFT(SDA_PIN) | GPIO_PIN_MODE_SHIFT(SCL_PIN));
-    GPIOB_MODER |= (GPIO_PIN_MODE_SHIFT(SDA_PIN) | GPIO_PIN_MODE_SHIFT(SCL_PIN));
-    
-    // 2. Ensure SDA is Released (high)
-    GPIOB_BSRR = GPIO_BSRR_SET(SCL_PIN);
 
-    // 3. Pulse the SCL 9 times to let the slave finish its last byte and release SDA
+    /* 2. Release both lines BEFORE the mode change. ODR latches even while the
+     *    pins are still alternate-function, so this removes the momentary
+     *    both-lines-low that the switch to output mode would otherwise cause. */
+    GPIOB_BSRR = GPIO_BSRR_SET(SDA_PIN) | GPIO_BSRR_SET(SCL_PIN);
+
+    GPIOB_MODER &= ~((0x3U << GPIO_PIN_MODE_SHIFT(SDA_PIN)) | (0x3U << GPIO_PIN_MODE_SHIFT(SCL_PIN)));
+    GPIOB_MODER |=  ((0x1U << GPIO_PIN_MODE_SHIFT(SDA_PIN)) | (0x1U << GPIO_PIN_MODE_SHIFT(SCL_PIN)));
+
+    /* 3. Pulse SCL nine times. A slave stuck mid-byte consumes these clocks and
+     *    lets go of SDA on the acknowledge slot it never received. SDA stays
+     *    released throughout so the slave is free to drive it. */
     for(uint8_t i=0; i<9; i++){
         GPIOB_BSRR = GPIO_BSRR_RST(SCL_PIN);
         delay_us(5);
@@ -427,7 +459,10 @@ void i2c_bus_recover(void){
         delay_us(5);
     } 
 
-    // 4. Generate a Manual STOP condition (SDA goes HIGH when SCL is HIGH)
+    /* 4. Manual STOP: SCL low, SDA low, SCL high, SDA high. Dropping SCL first
+     *    keeps both SDA edges out of the SCL-high window. */
+    GPIOB_BSRR = GPIO_BSRR_RST(SCL_PIN);
+    delay_us(5);
     GPIOB_BSRR = GPIO_BSRR_RST(SDA_PIN);
     delay_us(5);
     GPIOB_BSRR = GPIO_BSRR_SET(SCL_PIN);
@@ -435,5 +470,11 @@ void i2c_bus_recover(void){
     GPIOB_BSRR = GPIO_BSRR_SET(SDA_PIN);
     delay_us(5);
 
-    i2c_init();     // Restart I2C again
+    /* 5. Did it work? If a slave is still holding the line, SDA reads low here
+     *    and the next START will fail exactly as before. Sample before i2c_init
+     *    hands the pins back to the peripheral. */
+    uint8_t released = (GPIOB_IDR & (1U << SDA_PIN)) ? 1U : 0U;
+
+    i2c_init();     /* 6. Hand the pins back to the peripheral and start clean. */
+    return released;
 }

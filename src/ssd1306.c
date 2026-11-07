@@ -35,8 +35,6 @@ static void SSD1306_Cmd(uint8_t cmd)
 }
 
 /**
- * @brief   Run the panel's initialisation sequence.
- *
  * @note    Order matters. The display is kept off (0xAE) until every
  *          parameter is set, because changing configuration on a running
  *          panel produces visible garbage rather than an error.
@@ -71,9 +69,6 @@ void SSD1306_Init(void)
 }
 
 /**
- * @brief   Fill the entire panel with one colour byte.
- * @param   color 0xFF = all on, 0x00 = all off.
- *
  * @note    GDDRAM is organised as 8 "pages" of 128 bytes. One byte covers
  *          eight vertical pixels in a single column, so a page is 8 rows tall
  *          and 128 bytes fill it exactly. 8 pages x 128 bytes = 1024 bytes,

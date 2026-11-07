@@ -16,8 +16,6 @@
 #include "timebase.h"
 
 /**
- * @brief   Enable the trace/debug blocks and start the cycle counter.
- *
  * @note    Two separate enables are required and both are easy to forget:
  *          CoreDebug_DEMCR_TRCENA gates the whole DWT block, DWT_CTRL_CYCCNTENA
  *          gates the counter inside it. Set only CYCCNTENA and it never increments.
@@ -29,9 +27,6 @@ void timebase_init(void)
 }
 
 /**
- * @brief   Current time in microseconds.
- * @return  DWT_CYCCNT / 100, i.e. cycles divided into 1 MHz ticks.
- *
  * @note    The 100 is not magic: HCLK is 100 MHz, so 100 cycles = 1 us.
  *          The compiler turns `x / 100` into a multiply by 0x51EB851F and a
  *          shift, which is why this is cheap enough to call in a tight loop.
@@ -42,9 +37,6 @@ uint32_t timebase_us(void)
 }
 
 /**
- * @brief   Busy-wait for @p us microseconds.
- * @param   us Delay length in microseconds.
- *
  * @note    The subtraction is the whole trick. CYCCNT is a 32-bit counter
  *          that wraps every 2^32 cycles (~42.9 s at 100 MHz), and unsigned
  *          arithmetic makes `now - start` give the correct elapsed count
