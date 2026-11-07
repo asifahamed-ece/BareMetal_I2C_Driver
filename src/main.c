@@ -54,54 +54,46 @@ static void print_hex(uint8_t val){
  * derived from 100 MHz rather than the 16 MHz reset default.
  */
 int main(void) {
-
     clock_init_100Mhz();    
     timebase_init();
     led_init();
     uart2_init();
-
     i2c_init();
+
+    uart_print("\r\n--- BareMetal I2C Driver Initialized ---\r\n");
+
+    // Scan the bus
     uart_print("Scanning I2C Bus...\r\n");
-
-    // uart_print("Comms Test !\r\n");
-    // uart_print("I am BlackPill, Is there anyone On-Range!!!\r\n");
-
+    uint8_t devices_found = 0;
     for(uint8_t addr = 0x08; addr < 0x78; addr++){
         if(i2c_probe(addr)){
-            uart_print("Found: 0x");
+            uart_print("Found device at: 0x");
             print_hex(addr);
             uart_print("\r\n");
+            devices_found++;
         }
     }
-    uart_print("Scanning done...!\r\n");
-
-    uart_print("Initializing OLED...\r\n");
-    delay_us(100000);       // Wait 100ms for the OLED power to stabilize
-    SSD1306_Init();         // Send the init sequence (from your ssd1306.c)
-    uart_print("OLED Initialized\r\n");
-
-    uint8_t who_am_i = 0;
-
-    // MPU6050 is at 0x68, WHO_AM_I register is 0x75
-    if (i2c_read(0x68, 0x75, &who_am_i, 1)) {
-        uart_print("MPU6050 WHO_AM_I: 0x");
-        print_hex(who_am_i);
-        uart_print("\r\n");
-    } else {
-        uart_print("Failed to read from MPU6050\r\n");
+    
+    if (devices_found == 0) {
+        uart_print("No devices found. Attempting bus recovery...\r\n");
+        i2c_bus_recover();
     }
 
-    while (1) {
-        // --- STATE 1: EVERYTHING ON ---
-        led_set(true);                      // LED ON
-        OLED_Fill(0xFF);                    // Fill screen with White
-        uart_print("LED ON / Screen WHITE\r\n");
-        delay_us(2000000);                  // Wait 2 seconds
+    // Init OLED
+    uart_print("Initializing OLED...\r\n");
+    delay_us(100000);       
+    SSD1306_Init();         
 
-        // --- STATE 2: EVERYTHING OFF ---
-        led_set(false);                     // LED OFF
-        OLED_Fill(0x00);                    // Fill screen with Black
+    // Demo Loop
+    while (1) {
+        led_set(true);                      
+        OLED_Fill(0xFF);                    // Fill screen White
+        uart_print("LED ON / Screen WHITE\r\n");
+        delay_us(2000000);                  
+
+        led_set(false);                     
+        OLED_Fill(0x00);                    // Fill screen Black
         uart_print("LED OFF / Screen BLACK\r\n");
-        delay_us(2000000);                  // Wait 2 seconds
+        delay_us(2000000);                  
     }
 }
