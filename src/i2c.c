@@ -408,3 +408,32 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len)
 
     return 1;
 }
+
+void i2c_bus_recover(void){
+    // 1. Disable the peripheral and Switch to reset modes of Pins
+    I2C1_CR1 &= ~I2C_CR1_PE;
+    
+    GPIOB_MODER &= ~(GPIO_PIN_MODE_SHIFT(SDA_PIN) | GPIO_PIN_MODE_SHIFT(SCL_PIN));
+    GPIOB_MODER |= (GPIO_PIN_MODE_SHIFT(SDA_PIN) | GPIO_PIN_MODE_SHIFT(SCL_PIN));
+    
+    // 2. Ensure SDA is Released (high)
+    GPIOB_BSRR = GPIO_BSRR_SET(SCL_PIN);
+
+    // 3. Pulse the SCL 9 times to let the slave finish its last byte and release SDA
+    for(uint8_t i=0; i<9; i++){
+        GPIOB_BSRR = GPIO_BSRR_RST(SCL_PIN);
+        delay_us(5);
+        GPIOB_BSRR = GPIO_BSRR_SET(SCL_PIN);
+        delay_us(5);
+    } 
+
+    // 4. Generate a Manual STOP condition (SDA goes HIGH when SCL is HIGH)
+    GPIOB_BSRR = GPIO_BSRR_RST(SDA_PIN);
+    delay_us(5);
+    GPIOB_BSRR = GPIO_BSRR_SET(SCL_PIN);
+    delay_us(5);
+    GPIOB_BSRR = GPIO_BSRR_SET(SDA_PIN);
+    delay_us(5);
+
+    i2c_init();     // Restart I2C again
+}
