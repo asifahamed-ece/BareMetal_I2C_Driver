@@ -45,3 +45,4 @@ desktop.ini
 
 # Generated API documentation - regenerate with: doxygen Doxyfile
 docs/api/
+.kilo/
